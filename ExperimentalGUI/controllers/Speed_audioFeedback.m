@@ -13,7 +13,7 @@ nirs = 0;
 if nirs
     nirs_og = 0;
     nirs = 1;
-    oxysoft_present = 1;
+    oxysoft_present = 0;
 else
     nirs_og = 0;
     nirs = 0;
@@ -188,6 +188,7 @@ datlog.audioCues.start = [];
 datlog.audioCues.stop = [];
 datlog.audioCues.audio_instruction_message = {};
 datlog.walkTime = [];
+datlog.straightTime = [];
 histL=nan(1,50);
 histR=nan(1,50);
 histCount=1;
@@ -312,6 +313,8 @@ try %So that if something fails, communications are closed properly
         disp('nirs range')
         y_max = 4250;%0 treadmill, max = 4.25meter ~= 13.94 ft = 6-7 tiles
         y_min = -2300;%0 treadmill, min = 2.3meter ~=7.55 ft = 3-4 tiles
+        y_max_straight = 3600; %650 less
+        y_min_straight = -1650; %650 more
         if nirs_og == 1
             disp('nirs og')
             fastest = 9.906; %13tiles = 7.9248 meters / 0.8m/s, 
@@ -324,6 +327,14 @@ try %So that if something fails, communications are closed properly
     % TODO Shuqi NIRS
     inout1 = 0; %initialize both variables to 0
     inout2 = 0;
+    if nirs
+        rightout1 = 0;
+        rightout2 = 0;
+        rightout3 = 0;
+        leftout1 = 0;
+        leftout2 = 0;
+    end
+    
     
     LHS_time = 0;
     RHS_time = 0;
@@ -584,6 +595,55 @@ try %So that if something fails, communications are closed properly
                         addpoints(ppp3,sumiL,OG_speed_left)
                     end       
                     
+                    %need to figure out how to differentiate between
+                    %straightaways
+                    if nirs
+                        %disp('here1');
+                        %disp(body_y_pos(frameind.Value));
+                        if body_y_pos(frameind.Value) >= y_min_straight && rightout1 ~= 1
+                            disp('entered right straightaway');
+                            rightout1 = 1;
+                            tright1 = clock;
+                        elseif body_y_pos(frameind.Value) >= y_max_straight && rightout2 ~= 1
+                            disp('exited right straightaway');
+                            rightout2 = 1;
+                            tright2 = clock;
+                        elseif body_y_pos(frameind.Value) <= y_max_straight && rightout3 == 1 && leftout1 ~= 1
+                            disp('entered left straightaway');
+                            leftout1 = 1;
+                            tleft1 = clock;
+                        elseif body_y_pos(frameind.Value) <= y_min_straight && rightout3 == 1 && leftout2 ~= 1 && leftout1 == 1
+                            disp('exited left straightaway');
+                            leftout2 = 1;
+                            tleft2 = clock;
+                        end
+                    end
+                    
+                    if nirs
+                        if rightout1 == 1 && rightout2 == 1 && rightout3 ~= 1 %end of right straightaway; by the door
+                            disp('updating right straightaway time');
+                            tright_diff = tright1-tright2;
+                            straight_duration = abs((tright_diff(4)*3600)+(tright_diff(5)*60)+tright_diff(6));
+                            disp(straight_duration);
+                            rightout3 = 1;
+                            datlog.straightTime(end+1) = straight_duration;
+                            disp(datlog.straightTime(end));
+
+                        elseif leftout1 == 1 && leftout2 == 1 %end of left straightaway; by the computer
+                            disp('updating left straightaway time');
+                            tleft_diff = tleft1-tleft2;
+                            straight_duration = abs((tleft_diff(4)*3600)+(tleft_diff(5)*60)+tleft_diff(6));
+                            disp(straight_duration);
+                            datlog.straightTime(end+1) = straight_duration;
+                            disp(datlog.straightTime(end));
+                            %reset all sentinels
+                            rightout1 = 0;
+                            rightout2 = 0;
+                            rightout3 = 0;
+                            leftout1 = 0;
+                            leftout2 = 0;
+                        end
+                    end
                     
                 elseif body_y_pos(frameind.Value) <= y_min
                     %reach one end (computer side)
