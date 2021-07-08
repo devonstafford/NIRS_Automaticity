@@ -9,16 +9,25 @@ function [RTOTime, LTOTime, RHSTime, LHSTime, commSendTime, commSendFrame] = Spe
 
 %%
 %close all
-nirs = 1;
-oxysoft_present = 1;
+nirs = 0;
+if nirs
+    nirs_og = 0;
+    nirs = 1;
+    oxysoft_present = 1;
+else
+    nirs_og = 0;
+    nirs = 0;
+    oxysoft_present = 0;   
+end
 alphabetLetter = 'B'; %TODO: to be randomized for each participant 1st and last visit swap; maybe read from randomized file generated order
-%         eventorder_all = [0,1,2; 2, 1, 0; 1,2,0; 1,0,2; 0,2,1; 2,0,1];%TODO: to be randomized for each participant
-event_list = [0,1,2];
-iterations = 6;
+event_list = [0 2 1]; %0 = stand and alphabet, 1 = walk and alphabet, 2 = walk, 
+current_iteration = '6'; %for event logging purposes
 
 % Oxysoft = nan; %FIXME: for testing without nirs
-Oxysoft = actxserver('OxySoft.OxyApplication'); %FIXME: uncomment
-
+Oxysoft = nan;
+if oxysoft_present
+    Oxysoft = actxserver('OxySoft.OxyApplication'); %FIXME: uncomment
+end
 global feedbackFlag
 if feedbackFlag==1  %&& size(get(0,'MonitorPositions'),1)>1
     ff=figure('Units','Normalized','Position',[1 0 1 1]);
@@ -178,6 +187,7 @@ datlog.stepdata.paramRHS = zeros(length(velL)+50,1);
 datlog.audioCues.start = [];
 datlog.audioCues.stop = [];
 datlog.audioCues.audio_instruction_message = {};
+datlog.walkTime = [];
 histL=nan(1,50);
 histR=nan(1,50);
 histCount=1;
@@ -292,11 +302,25 @@ try %So that if something fails, communications are closed properly
     commSendFrame=zeros(2*N-1,1);
     % stepFlag=0;
     
-    fastest = 5.6; %7 meters/ 1.25 m/s
-    slowest = 7; % 7 meters/ 1 m/s
+    fastest = 6.3636; %7 meters/ 1.1 m/s
+    slowest = 7.778; % 7 meters/ 0.9 m/s
     y_max = 4500;
     y_min = -2500;
  
+    %TODO: Shuqi
+    if nirs
+        disp('nirs range')
+        y_max = 4250;%0 treadmill, max = 4.25meter ~= 13.94 ft = 6-7 tiles
+        y_min = -2300;%0 treadmill, min = 2.3meter ~=7.55 ft = 3-4 tiles
+        if nirs_og == 1
+            disp('nirs og')
+            fastest = 9.906; %13tiles = 7.9248 meters / 0.8m/s, 
+            slowest = 11.32; %13tiles = 7.9248 meters / 0.7m/s
+%             FIXME: there is a bug here, current speed is 6.55/9.906 =
+%             0.66m/s and 6.55/11.32 = 0.58m/s or 0.7 - 0.62m/s
+        end
+    end
+    
     % TODO Shuqi NIRS
     inout1 = 0; %initialize both variables to 0
     inout2 = 0;
@@ -319,7 +343,7 @@ try %So that if something fails, communications are closed properly
         %Connect to Oxysoft - Shuqi TODO
         restDuration = 20; %FIXME: time when rest, usually 20,
         disp('Initial Setup')
-        eventorder_all = repmat(event_list, iterations, 1);
+        eventorder_all = repmat(event_list, 1, 1); %TODO: not needed anymore 
         trialIndex = 1;
         eventorder = eventorder_all(trialIndex,:); %0 = stand and alphabet, 1 = walk and alphabet, 2 = walk, 
         %set up audio players
@@ -336,7 +360,7 @@ try %So that if something fails, communications are closed properly
         end
         
         % Write event I with description 'Instructions' to Oxysoft
-        datlog = nirsEvent('', 'I', 'Connected', instructions, datlog, Oxysoft, oxysoft_present);
+        datlog = nirsEvent('', 'I', ['Connected',current_iteration], instructions, datlog, Oxysoft, oxysoft_present);
         
         %start with a rest block
         disp('Rest');
@@ -362,16 +386,7 @@ try %So that if something fails, communications are closed properly
             currentIndex = currentIndex + 1;
         end
     end
-    
-    %TODO: Shuqi
-    if nirs
-        y_max = 4250;%0 treadmill, max = 7 tile = 14 ft ~= 4.2672meter
-        y_min = -2250;%0 treadmill, min = 2.3 tile = 4.6 ft ~= 1.4021 meter
-%             y_max = 4500;
-%     y_min = -2500;
-    end
-
-    
+        
     %Send first speed command & store
     acc=3000;
 %     [payload] = getPayload(velR(1),velL(1),acc,acc,cur_incl);
@@ -567,19 +582,14 @@ try %So that if something fails, communications are closed properly
                         set(ghandle.Left_step_textbox,'String',num2str(sumiL));
                         
                         addpoints(ppp3,sumiL,OG_speed_left)
-                    end
+                    end       
                     
                     
                 elseif body_y_pos(frameind.Value) <= y_min
                     %reach one end (computer side)
                     t1 = clock;
                     inout1 = 1;
-%                     flagIn = True
-                    
-%                 elseif body_y_pos(frameind.Value) > y_min && flagIn = True
-%                     %reach one end (computer side)
-%                     flagIn = False
-                    
+
                 elseif body_y_pos(frameind.Value) >= y_max
                     %reach the door side
                     t2 = clock;
@@ -589,12 +599,14 @@ try %So that if something fails, communications are closed properly
                     end
                 end
                 
+                
+                
                 if inout1 == 1 && inout2 == 1
                     
                     t_diff = t1-t2;
                     walk_duration = abs((t_diff(4)*3600)+(t_diff(5)*60)+t_diff(6));
                     
-                    if (~nirs) %TODO: Shuqi
+                    if (~nirs) %TODO: Shuqi                       
                         if walk_duration < fastest
                             play(instructions('fast'));
                         elseif walk_duration > slowest
@@ -602,6 +614,7 @@ try %So that if something fails, communications are closed properly
                         else
                             play(instructions('good'));
                         end
+                        datlog.walkTime(end+1)=walk_duration;
                         inout1 = 0;
                         inout2 = 0;
                     end
@@ -611,12 +624,12 @@ try %So that if something fails, communications are closed properly
                     %always stop once, only stop at the computer side, then move on to next instruction.
                     inout1 = 0; %reset
                     inout2 = 0;
-                    datlog = nirsEvent('turnAndStop','R','Rest', instructions, datlog, Oxysoft, oxysoft_present);
+                    datlog = nirsEvent('stopAndRest','R','Rest', instructions, datlog, Oxysoft, oxysoft_present);
                     pause(restDuration);
 
                     if currentIndex > length (eventorder)
 %                         Speak(obj, 'Trial End') %TODO: in actual test, pause or say stop and rest
-                        datlog = nirsEvent('relax','E','Trial End', instructions, datlog, Oxysoft, oxysoft_present);
+%                         datlog = nirsEvent('relax','E','Trial End', instructions, datlog, Oxysoft, oxysoft_present);
                         currentIndex = 1; %reset the current index
                         trialIndex = trialIndex + 1;
                         if (trialIndex >  size(eventorder_all,1))
@@ -823,7 +836,6 @@ datlog.audioCues.start = ((datlog.audioCues.start)-(datlog.framenumbers.data(1,2
 temp = isnan(datlog.audioCues.stop);
 datlog.audioCues.stop=datlog.audioCues.stop(~temp);
 datlog.audioCues.stop = ((datlog.audioCues.stop) - (datlog.framenumbers.data(1,2)))*86400;
-
 
 %Get rid of graphical objects we no longer need:
 if exist('ff','var') && isvalid(ff)
