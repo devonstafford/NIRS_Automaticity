@@ -1,5 +1,0 @@
-adaptDataV2=load('/Users/mac/OneDrive - University of Pittsburgh/SML/Projects/fNIR Project/Code_NIRS_Automaticity/data/S04_MarcelaV03params.mat')
-adaptDataV2.plotAvgTimeCourse(adaptDataV2,'netContributionNorm2')
-
-adaptDataV3=load('/Users/mac/OneDrive - University of Pittsburgh/SML/Projects/fNIR Project/Code_NIRS_Automaticity/data/S04_MarcelaV03params.mat')
-adaptDataV3.plotAvgTimeCourse(adaptDataV3,'netContributionNorm2')

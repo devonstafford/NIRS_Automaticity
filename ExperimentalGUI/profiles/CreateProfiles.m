@@ -1,7 +1,100 @@
+%% pre-intervention profile
+velL = [0.75*ones(500,1)]; %have extras, the strides here dont matter as much
+velR = [0.75*ones(500,1)];
+save('PrePostIntervention/OGTrials.mat','velL','velR')
+
+velL = [0.5*ones(150,1)];
+velR = [0.5*ones(150,1)];
+save('PrePostIntervention/TMBaselineSlow.mat','velL','velR')
+
+velL = [1*ones(150,1)];
+velR = [1*ones(150,1)];
+save('PrePostIntervention/TMBaselineFast.mat','velL','velR')
+
+velL = [0.75*ones(150,1);0.5*ones(150,1)];
+velR = [0.75*ones(150,1);1*ones(150,1)];
+save('PrePostIntervention/MidBaseAndAdatation_RightDominant.mat','velL','velR')
+velR = [0.75*ones(150,1);0.5*ones(150,1)];
+velL = [0.75*ones(150,1);1*ones(150,1)];
+save('PrePostIntervention/MidBaseAndAdatation_LeftDominant.mat','velL','velR')
+
+velL = [0.5*ones(300,1)];
+velR = [1*ones(300,1)];
+save('PrePostIntervention/Adatation_RightDominant.mat','velL','velR')
+veltemp = velR;
+velR = velL;
+velL = veltemp;
+save('PrePostIntervention/Adatation_LeftDominant.mat','velL','velR')
+
+velL = [0.5*ones(150,1)];
+velR = [1*ones(150,1)];
+save('PrePostIntervention/Adatation_150strides_RightDominant.mat','velL','velR')
+veltemp = velR;
+velR = velL;
+velL = veltemp;
+save('PrePostIntervention/Adatation_150_stridesLeftDominant.mat','velL','velR')
+
+velL = [0.75*ones(150,1)];
+velR = [0.75*ones(150,1)];
+save('PrePostIntervention/TMMid.mat','velL','velR')
+
+velL = [0.75*ones(50,1);0.5*ones(30,1)];
+velR = [0.75*ones(50,1);1*ones(30,1)];
+save('PrePostIntervention/PosShort_RightDominant.mat','velL','velR')
+veltemp = velR;
+velR = velL;
+velL = veltemp;
+save('PrePostIntervention/PosShort_LeftDominant.mat','velL','velR')
+
+velL = [0.75*ones(50,1);1*ones(30,1)];
+velR = [0.75*ones(50,1);0.5*ones(30,1)];
+save('PrePostIntervention/NegShort_RightDominant.mat','velL','velR')
+veltemp = velR;
+velR = velL;
+velL = veltemp;
+save('PrePostIntervention/NegShort_LeftDominant.mat','velL','velR')
+
 %% Intervention Profile
-velL = velL';
-velR = velR';
-save('TMBaselineSlow.mat','velL','velR')
+velL = [0.75*ones(500,1)]; %have extras, the strides here dont matter as much
+velR = [0.75*ones(500,1)];
+save('Intervention/OGTrials.mat','velL','velR')
+
+velL = [0.5*ones(150,1)];
+velR = [0.5*ones(150,1)];
+save('Intervention/TMBaselineSlow.mat','velL','velR')
+
+velL = [1*ones(150,1)];
+velR = [1*ones(150,1)];
+save('Intervention/TMBaselineFast.mat','velL','velR')
+
+velL = [0.75*ones(150,1);0.5*ones(200,1);0.75*ones(25,1)];
+velR = [0.75*ones(150,1);1*ones(200,1);0.75*ones(25,1)];
+save('Intervention/Adaptation1_LeftDominant.mat','velL','velR')
+veltemp = velR;
+velR = velL;
+velL = veltemp;
+save('Intervention/Adaptation1_RightDominant.mat','velL','velR')
+
+velL = [0.75*ones(25,1);0.5*ones(200,1);0.75*ones(25,1)];
+velR = [0.75*ones(25,1);1*ones(200,1);0.75*ones(25,1)];
+save('Intervention/Adaptation2-4_LeftDominant.mat','velL','velR')
+veltemp = velR;
+velR = velL;
+velL = veltemp;
+save('Intervention/Adaptation2-4_RightDominant.mat','velL','velR')
+
+velL = [0.75*ones(25,1);0.5*ones(200,1)];
+velR = [0.75*ones(25,1);1*ones(200,1)];
+save('Intervention/Adaptation5_LeftDominant.mat','velL','velR')
+veltemp = velR;
+velR = velL;
+velL = veltemp;
+save('Intervention/Adaptation5_RightDominant.mat','velL','velR')
+
+velL = [0.75*ones(150,1)];
+velR = [0.75*ones(150,1)];
+save('Intervention/TMPostMid.mat','velL','velR')
+
 
 %% adaptation 1 - baseline adaptation
 velL = [0.75*ones(1,150),0.5*ones(1,150),0.75*ones(1,50)];

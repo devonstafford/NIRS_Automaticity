@@ -9,11 +9,15 @@ function [RTOTime, LTOTime, RHSTime, LHSTime, commSendTime, commSendFrame] = Spe
 
 %%
 %close all
-nirs = 0;
+nirs = 1;
 if nirs
     nirs_og = 0;
     nirs = 1;
-    oxysoft_present = 0;
+    oxysoft_present = 0; 
+    info = audiodevinfo; %only need to run this once
+    Fz = 48000;
+    %try input 0 or 1, and output 2
+    recObj = audiorecorder(Fz, 16, 1, 0); %Only need to change the last number, the input IDs
 else
     nirs_og = 0;
     nirs = 0;
@@ -187,6 +191,8 @@ datlog.stepdata.paramRHS = zeros(length(velL)+50,1);
 datlog.audioCues.start = [];
 datlog.audioCues.stop = [];
 datlog.audioCues.audio_instruction_message = {};
+datlog.audioCues.recording={};
+datlog.audioCues.recording_for_instruction={};
 datlog.walkTime = [];
 datlog.straightTime = [];
 histL=nan(1,50);
@@ -352,7 +358,7 @@ try %So that if something fails, communications are closed properly
         end
     else
         %Connect to Oxysoft - Shuqi TODO
-        restDuration = 20; %FIXME: time when rest, usually 20,
+        restDuration = 5; %FIXME: time when rest, usually 20,
         disp('Initial Setup')
         eventorder_all = repmat(event_list, 1, 1); %TODO: not needed anymore 
         trialIndex = 1;
@@ -369,6 +375,10 @@ try %So that if something fails, communications are closed properly
             [audio_data,audio_fs]=audioread(strcat(audioFileNames{i},'.mp3'));
             instructions(audioids{i}) = audioplayer(audio_data,audio_fs);
         end
+        standAlphaInstructionDuration = audioinfo(strcat(audioFileNames{4},'.mp3'));
+        standAlphaInstructionDuration = standAlphaInstructionDuration.Duration;
+        walkAlphaInstructionDuration = audioinfo(strcat(audioFileNames{7},'.mp3'));
+        walkAlphaInstructionDuration = walkAlphaInstructionDuration.Duration;
         
         % Write event I with description 'Instructions' to Oxysoft
         datlog = nirsEvent('', 'I', ['Connected',current_iteration], instructions, datlog, Oxysoft, oxysoft_present);
@@ -381,8 +391,24 @@ try %So that if something fails, communications are closed properly
         currentIndex = 1;
         if eventorder(currentIndex)== 0 %stand and alphabet
             datlog = nirsEvent('standAlphabet', 'A', ['Stand and Alphabet with ' alphabetLetter], instructions, datlog, Oxysoft, oxysoft_present);
+            
+            pause(standAlphaInstructionDuration);
+            tic
+            disp('Recording');
+            record(recObj);
             pause(restDuration)
-
+            stop(recObj);
+            disp('Done Recording');
+            toc
+            tic
+            audioData = getaudiodata(recObj);
+            datlog.audioCues.recording_for_instruction{end+1} = ['Stand and Alphabet with ' alphabetLetter];
+            datlog.audioCues.recording{end+1} = audioData;
+            disp('playing')
+            play(instructions('stopAndRest'))
+            toc          
+            pause(4);
+            
             %complete follow a rest block
             datlog = nirsEvent('stopAndRest','R','Rest', instructions, datlog, Oxysoft, oxysoft_present);
             pause(restDuration);
@@ -593,7 +619,7 @@ try %So that if something fails, communications are closed properly
                         set(ghandle.Left_step_textbox,'String',num2str(sumiL));
                         
                         addpoints(ppp3,sumiL,OG_speed_left)
-                    end       
+                    end
                     
                     %need to figure out how to differentiate between
                     %straightaways
@@ -649,7 +675,12 @@ try %So that if something fails, communications are closed properly
                     %reach one end (computer side)
                     t1 = clock;
                     inout1 = 1;
-
+%                     flagIn = True
+                    
+%                 elseif body_y_pos(frameind.Value) > y_min && flagIn = True
+%                     %reach one end (computer side)
+%                     flagIn = False
+                    
                 elseif body_y_pos(frameind.Value) >= y_max
                     %reach the door side
                     t2 = clock;
@@ -886,6 +917,8 @@ end
 %convert audio times
 datlog.audioCues.start = datlog.audioCues.start';
 datlog.audioCues.audio_instruction_message = datlog.audioCues.audio_instruction_message';
+datlog.audioCues.recording=datlog.audioCues.recording';
+datlog.audioCues.recording_for_instruction=datlog.audioCues.recording_for_instruction';
 datlog.audioCues.stop = datlog.audioCues.stop';
 temp = isnan(datlog.audioCues.start);
 disp('\nConverting datalog, current starts \n'); %TODo: Shuqi

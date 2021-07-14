@@ -4,6 +4,7 @@ folder = '/Users/neminchen/Box/Rosso Study Files/NMCM Study/NMCM Data/NIRS Accel
 xlfile='/Users/neminchen/Box/Rosso Study Files/NMCM Study/NMCM Data/Excel Data for NMCM/Final Data Set/Mobility Final Data Set for NMCM.xlsx';
 
 %% load the data
+folder = '/Users/mac/Desktop/Lab/SMLLab/Code/NIRS_Automaticity/data/002nirsdata';
 raw = nirs.io.loadDirectory(folder,{'subject'});
 
 rawt = fix_Andi_data_N(raw,xlfile);
@@ -39,7 +40,7 @@ SubjStats=SubjStats.ttest({'Even-Rest_Even'
                            'Uneven-Rest_Uneven'
                            'Uneven_ABC-Rest_Uneven_ABC'
                            'Standing_ABC-Rest_Standing_ABC'},[],...
-                           {'Even','Even_ABC','Uneven','Uneven_ABC','Standing_ABC'});\
+                           {'Even','Even_ABC','Uneven','Uneven_ABC','Standing_ABC'});
 % among active/walking conditions comparison                        
 SubjStats2=SubjStats.ttest({'Uneven-Even'
                             'Even_ABC-Even'
