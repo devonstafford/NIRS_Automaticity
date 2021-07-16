@@ -379,7 +379,13 @@ try %So that if something fails, communications are closed properly
         %start with a rest block
         disp('Rest');
         
-        nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
+        if (eventorder(currentIndex + 1) == 0) %next is stand and alphabet
+            nirsRestEventString = 'Rest_Before_Stand_And_Alphabet';
+        elseif (eventorder(currentIndex + 1) == 1) %next is walk and alphabet
+            nirsRestEventString = 'Rest_Before_Walk_And_Alphabet';
+        elseif (eventorder(currentIndex + 1) == 2) %next is walk
+            nirsRestEventString = 'Rest_Before_Walk';
+        end
         datlog = nirsEvent('rest', 'R', nirsRestEventString, instructions, datlog, Oxysoft, oxysoft_present);
         pause(restDuration);
 
@@ -405,7 +411,13 @@ try %So that if something fails, communications are closed properly
             pause(4);
             
             %complete follow a rest block
-            nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
+            if (eventorder(currentIndex + 1) == 0) %next is stand and alphabet
+                nirsRestEventString = 'Rest_Before_Stand_And_Alphabet';
+            elseif (eventorder(currentIndex + 1) == 1) %next is walk and alphabet
+                nirsRestEventString = 'Rest_Before_Walk_And_Alphabet';
+            elseif (eventorder(currentIndex + 1) == 2) %next is walk
+                nirsRestEventString = 'Rest_Before_Walk';
+            end
             datlog = nirsEvent('stopAndRest','R',nirsRestEventString, instructions, datlog, Oxysoft, oxysoft_present);
             pause(restDuration);
             currentIndex = currentIndex + 1;
@@ -724,12 +736,11 @@ try %So that if something fails, communications are closed properly
 %                             Speak(obj, 'Experiment End') %TODO: in actual test, pause or say stop and rest
                             datlog = nirsEvent('relax','O','Trial_End', instructions, datlog, Oxysoft, oxysoft_present);
                             %TODO: should automatically send signal to terminate the software
-                        else  %Restart a trial, currently should never be here
+                        else  %Restart a trial, currently should never
                             eventorder = event_list(trialIndex,:); 
                             %0 = stand and alphabet, 1 = walk and alphabet, 2 = walk, 
                             %start the new trial with a rest
-                            nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
-                            datlog = nirsEvent('rest','R',nirsRestEventString, instructions, datlog, Oxysoft, oxysoft_present);
+                            datlog = nirsEvent('rest','R','Rest', instructions, datlog, Oxysoft, oxysoft_present);
                             pause(restDuration);
                         end
                     end
@@ -740,8 +751,7 @@ try %So that if something fails, communications are closed properly
                         pause(restDuration)
 
                         %complete follow a rest block
-                        nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
-                        datlog = nirsEvent('stopAndRest','R',nirsRestEventString, instructions, datlog, Oxysoft, oxysoft_present);
+                        datlog = nirsEvent('stopAndRest','R','Rest', instructions, datlog, Oxysoft, oxysoft_present);
                         pause(restDuration);
                         currentIndex = currentIndex + 1;
 
@@ -752,9 +762,8 @@ try %So that if something fails, communications are closed properly
                                 STOP = 1;
                                 datlog = nirsEvent('relax','O','Trial_End', instructions, datlog, Oxysoft, oxysoft_present); 
                             else
-                                eventorder = event_list(trialIndex,:);
-                                nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
-                                datlog = nirsEvent('rest','R','Rest', nirsRestEventString, datlog, Oxysoft, oxysoft_present);
+                                eventorder = event_list(trialIndex,:); 
+                                datlog = nirsEvent('rest','R','Rest', instructions, datlog, Oxysoft, oxysoft_present);
                                 pause(restDuration);
                             end      
                         end 
