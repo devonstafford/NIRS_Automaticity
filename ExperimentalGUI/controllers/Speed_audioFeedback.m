@@ -11,20 +11,19 @@ function [RTOTime, LTOTime, RHSTime, LHSTime, commSendTime, commSendFrame] = Spe
 %close all
 nirs = 1;
 if nirs
-    nirs = 1;
-    oxysoft_present = 0; 
-    all_events = [0 1 2; 0 2 1;1 0 2; 1 2 0; 2 1 0; 2 0 1];
-    randomization_order = [1 2 3 4 5 6];
+    oxysoft_present = 1; 
+    randomization_order = [6 3 1 5 2 4];
     alphabetLetter = 'B'; %TODO: to be randomized for each participant 1st and last visit swap; maybe read from randomized file generated order
     
     info = audiodevinfo; %only need to run this once
     Fz = 48000;
     %try input 0 or 1, and output 2
-    recObj = audiorecorder(Fz, 16, 1, 0); %Only need to change the last number, the input IDs
+    recObj = audiorecorder(Fz, 16, 1, 1); %Only need to change the last number, the input IDs
     current_iteration = input('What is the current_iteration:  '); %for event logging purposes
-    event_list = all_events(randomization_order(current_iteration),:); %0 = stand and alphabet, 1 = walk and alphabet, 2 = walk, 
+    all_events = [0 1 2; 0 2 1;1 0 2; 1 2 0; 2 1 0; 2 0 1];
+    event_list = all_events(randomization_order(current_iteration),:) %0 = stand and alphabet, 1 = walk and alphabet, 2 = walk, 
+    record(recObj);
 else
-    nirs = 0;
     oxysoft_present = 0;   
 end
 
@@ -352,7 +351,7 @@ try %So that if something fails, communications are closed properly
         end
     else
         %Connect to Oxysoft - Shuqi TODO
-        restDuration = 5; %FIXME: time when rest, usually 20,
+        restDuration = 20; %FIXME: time when rest, usually 20,
         disp('Initial Setup')
         trialIndex = 1;
         eventorder = event_list(trialIndex,:); %0 = stand and alphabet, 1 = walk and alphabet, 2 = walk, 
@@ -368,47 +367,30 @@ try %So that if something fails, communications are closed properly
             [audio_data,audio_fs]=audioread(strcat(audioFileNames{i},'.mp3'));
             instructions(audioids{i}) = audioplayer(audio_data,audio_fs);
         end
-        standAlphaInstructionDuration = audioinfo(strcat(audioFileNames{4},'.mp3'));
-        standAlphaInstructionDuration = standAlphaInstructionDuration.Duration;
-        walkAlphaInstructionDuration = audioinfo(strcat(audioFileNames{7},'.mp3'));
-        walkAlphaInstructionDuration = walkAlphaInstructionDuration.Duration;
-        
+%         standAlphaInstructionDuration = audioinfo(strcat(audioFileNames{4},'.mp3'));
+%         standAlphaInstructionDuration = standAlphaInstructionDuration.Duration;
+%         walkAlphaInstructionDuration = audioinfo(strcat(audioFileNames{7},'.mp3'));
+%         walkAlphaInstructionDuration = walkAlphaInstructionDuration.Duration;
         % Write event I with description 'Instructions' to Oxysoft
         datlog = nirsEvent('', 'I', ['Connected',num2str(current_iteration)], instructions, datlog, Oxysoft, oxysoft_present);
         
         %start with a rest block
         disp('Rest');
-        
+
+        currentIndex = 1;
         nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
         datlog = nirsEvent('rest', 'R', nirsRestEventString, instructions, datlog, Oxysoft, oxysoft_present);
         pause(restDuration);
 
-        currentIndex = 1;
         if eventorder(currentIndex)== 0 %stand and alphabet
             datlog = nirsEvent('standAlphabet', 'A', ['Stand_and_Alphabet_' alphabetLetter], instructions, datlog, Oxysoft, oxysoft_present);
-            
-            pause(standAlphaInstructionDuration);
-            tic
-            disp('Recording');
-            record(recObj);
-            pause(restDuration)
-            stop(recObj);
-            disp('Done Recording');
-            toc
-            tic
-            audioData = getaudiodata(recObj);
-            datlog.audioCues.recording_for_instruction{end+1} = ['Stand_and_Alphabet_' alphabetLetter];
-            datlog.audioCues.recording{end+1} = audioData;
-            disp('playing')
-            play(instructions('stopAndRest'))
-            toc          
-            pause(4);
+            currentIndex = currentIndex + 1;
+            pause(restDuration);
             
             %complete follow a rest block
             nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
             datlog = nirsEvent('stopAndRest','R',nirsRestEventString, instructions, datlog, Oxysoft, oxysoft_present);
             pause(restDuration);
-            currentIndex = currentIndex + 1;
         end
 
         if eventorder(currentIndex)==1 %first event is walk and alphabet
@@ -714,9 +696,8 @@ try %So that if something fails, communications are closed properly
                     nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
                     datlog = nirsEvent('stopAndRest','R',nirsRestEventString, instructions, datlog, Oxysoft, oxysoft_present);
                     pause(restDuration);
-
+                    
                     if currentIndex > length (eventorder)
-%                         Speak(obj, 'Trial End') %TODO: in actual test, pause or say stop and rest
                         currentIndex = 1; %reset the current index
                         trialIndex = trialIndex + 1;
                         if (trialIndex >  size(event_list,1))
@@ -725,37 +706,36 @@ try %So that if something fails, communications are closed properly
                             datlog = nirsEvent('relax','O','Trial_End', instructions, datlog, Oxysoft, oxysoft_present);
                             %TODO: should automatically send signal to terminate the software
                         else  %Restart a trial, currently should never be here
-                            eventorder = event_list(trialIndex,:); 
-                            %0 = stand and alphabet, 1 = walk and alphabet, 2 = walk, 
-                            %start the new trial with a rest
-                            nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
-                            datlog = nirsEvent('rest','R',nirsRestEventString, instructions, datlog, Oxysoft, oxysoft_present);
-                            pause(restDuration);
+%                             eventorder = event_list(trialIndex,:); 
+%                             %0 = stand and alphabet, 1 = walk and alphabet, 2 = walk, 
+%                             %start the new trial with a rest
+%                             nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
+%                             datlog = nirsEvent('rest','R',nirsRestEventString, instructions, datlog, Oxysoft, oxysoft_present);
+%                             pause(restDuration);
                         end
                     end
-                    disp('next current index');
-                    disp(eventorder(currentIndex));
+
                     if STOP ~= 1&& eventorder(currentIndex)== 0 %stand and alphabet
                         datlog = nirsEvent('standAlphabet','A',['Stand_and_Alphabet_' alphabetLetter], instructions, datlog, Oxysoft, oxysoft_present);
+                        currentIndex = currentIndex + 1;
                         pause(restDuration)
-
+                        
                         %complete follow a rest block
                         nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
                         datlog = nirsEvent('stopAndRest','R',nirsRestEventString, instructions, datlog, Oxysoft, oxysoft_present);
                         pause(restDuration);
-                        currentIndex = currentIndex + 1;
-
+                        
                         if currentIndex > length (eventorder)
                             currentIndex = 1; %reset the current index
                             trialIndex = trialIndex + 1;
                             if (trialIndex >  size(event_list,1))
                                 STOP = 1;
                                 datlog = nirsEvent('relax','O','Trial_End', instructions, datlog, Oxysoft, oxysoft_present); 
-                            else
-                                eventorder = event_list(trialIndex,:);
-                                nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
-                                datlog = nirsEvent('rest','R','Rest', nirsRestEventString, datlog, Oxysoft, oxysoft_present);
-                                pause(restDuration);
+                            else %Should never be here
+%                                 eventorder = event_list(trialIndex,:);
+%                                 nirsRestEventString = generateNirsRestEventString(eventorder, currentIndex);
+%                                 datlog = nirsEvent('rest','R','Rest', nirsRestEventString, datlog, Oxysoft, oxysoft_present);
+%                                 pause(restDuration);
                             end      
                         end 
                     end
@@ -927,6 +907,10 @@ datlog.audioCues.start = ((datlog.audioCues.start)-(datlog.framenumbers.data(1,2
 temp = isnan(datlog.audioCues.stop);
 datlog.audioCues.stop=datlog.audioCues.stop(~temp);
 datlog.audioCues.stop = ((datlog.audioCues.stop) - (datlog.framenumbers.data(1,2)))*86400;
+
+stop(recObj);
+audioData = getaudiodata(recObj);
+datlog.audioCues.recording{end+1} = audioData;
 
 %Get rid of graphical objects we no longer need:
 if exist('ff','var') && isvalid(ff)

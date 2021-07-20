@@ -20,11 +20,11 @@ function nirsRestEventString = generateNirsRestEventString(eventorder, currentIn
     %
     if (currentIndex > length (eventorder)) 
         nirsRestEventString = 'LastRest';
-    elseif (eventorder(currentIndex + 1) == 0) %next is stand and alphabet
+    elseif (eventorder(currentIndex) == 0) %next is stand and alphabet
         nirsRestEventString = 'Rest_Before_Stand_And_Alphabet';
-    elseif (eventorder(currentIndex + 1) == 1) %next is walk and alphabet
+    elseif (eventorder(currentIndex) == 1) %next is walk and alphabet
         nirsRestEventString = 'Rest_Before_Walk_And_Alphabet';
-    elseif (eventorder(currentIndex + 1) == 2) %next is walk
+    elseif (eventorder(currentIndex) == 2) %next is walk
         nirsRestEventString = 'Rest_Before_Walk';
     end
 end

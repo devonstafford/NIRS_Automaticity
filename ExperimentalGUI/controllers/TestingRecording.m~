@@ -1,0 +1,46 @@
+tic
+record(recObj);
+toc
+sound(y,Fs);
+pause(3);
+% record(recObj);
+pause(10);
+sound(y,Fs);
+pause(3);
+tic
+stop(recObj);
+toc
+audioData = getaudiodata(recObj);
+audiowrite('recordingTest07162021-4.wav',audioData,Fz)
+% sound(y,Fs);
+
+%%
+afr = dsp.AudioFileReader('AudioInstructionsMP3/standAndB.mp3');
+adw = audioDeviceWriter('SampleRate', afr.SampleRate);
+t0 = clock;
+while etime(clock, t0) < 10
+    audio = afr();
+    adw(audio);
+end
+release(afr); 
+release(adw);
+
+fs = fileReader.SampleRate;
+fileWriter = dsp.AudioFileWriter('testingRecording-1.wav', ...
+    'SampleRate',fs);
+aPR = audioPlayerRecorder('SampleRate',fs);
+
+while ~isDone(fileReader)
+    audioToPlay = fileReader();
+    
+    [audioRecorded,nUnderruns,nOverruns] = aPR(audioToPlay);
+    
+    fileWriter(audioRecorded)
+    
+    if nUnderruns > 0
+        fprintf('Audio player queue was underrun by %d samples.\n',nUnderruns);
+    end
+    if nOverruns > 0
+        fprintf('Audio recorder queue was overrun by %d samples.\n',nOverruns);
+    end
+end
