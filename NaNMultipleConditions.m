@@ -6,7 +6,7 @@ load('/Users/mackenziestiles/Desktop/SML Lab Matlab/fNIRS/fNIRS path/NIRS_Automa
 
 % load in your variables (the name of the condition you would like to
 % split, your speed difference metric, and an appropriate value to replace the NaNs)
-oldConditionName='TMBaseAdapt';
+oldConditionName='MidThenAdapt';
 speedDiff=400;
 %this is a value I am replacing the NaNs with in difference, you probably
 %should not change, but up to you
