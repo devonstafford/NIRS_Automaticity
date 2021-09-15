@@ -5,4 +5,5 @@ SwitchingCode/*
 WCS Code/*
 R01Nimbus2021-main/*
 *.pdf
-NMCM.mat
+NMCM.m
+ExperimentalGUI/profiles/*.png
