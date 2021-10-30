@@ -8,3 +8,8 @@ R01Nimbus2021-main/*
 *.pdf
 NMCM.m
 ExperimentalGUI/profiles/*.png
+NIRS_SPM_v4_r1\*
+NIRS_SPM_v4_r1*
+nirs-toolbox*
+fNIRSRecording*
+
