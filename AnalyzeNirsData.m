@@ -1,13 +1,12 @@
 %% Load data - new
 close all; clear all; clc;
 scriptDir = fileparts(matlab.desktop.editor.getActiveFilename); 
-raw={};
-raw = nirs.core.Data.empty;
-dataPath = [scriptDir '/Data/S08/V01Nirs/'];
-saveResAndFigures = false;
-% data1 = load([scriptDir 'Data/S06/V01/NIRS/S06V01M0102CleanV2.mat']);
-data2 = load([dataPath 'S08V01M01Clean.mat']);
-raw(1) = data2.raw;
+% raw = nirs.core.Data.empty;
+% raw(2) = data.raw; %can simply add in this way
+dataPath = [scriptDir '/Data/ShuqiTest/ShuqiTest'];
+saveResAndFigure = false;
+data = load([dataPath 'NirsCleaned_Post.mat']);
+raw(1) = data.raw;
 
 %% plot the raw data
 for i=1:length(raw)
@@ -42,10 +41,10 @@ j.goforit=true;
 SubjStats=j.run(Hb); %A ChannelStats object, with variables: stimulus x 2(hbo or hbr) x 8 (sources)
 
 %% compare each active condition against baseline + compare walk with alphabet vs walk alone
-SubjStatsVsBaseline=SubjStats.ttest({'Walk_and_Alphabet_B-RestBeforeWalk'
+SubjStatsVsBaseline=SubjStats.ttest({'Walk_and_Alphabet-RestBeforeWalk'
                             'Walk-RestBeforeWalk'
-                            'Stand_and_Alphabet_B-RestBeforeStandAlphabet'
-                            'Walk_and_Alphabet_B-Walk'
+                            'Stand_and_Alphabet-RestBeforeStandAlphabet'
+                            'Walk_and_Alphabet-Walk'
                             })
 %                         last argument = condition name, if not provided
 %                         use the first argument as the default

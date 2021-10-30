@@ -21,7 +21,7 @@ function addStimulusDuration(raw, startingLetter, savePath)
         allTime = [allTime;stimulus.onset];
         allTimeLabels = [allTimeLabels, sprintfc([eventStrings{i} '%d'],1:6)];
         if length(stimulus.onset) ~= 6
-            warning(['Conditions are missing. Expected 6 iterations per condition. Only got ',length(stimulus.onset)])
+            warning(['Conditions are missing. Expected 6 iterations per condition. Got ',num2str(length(stimulus.onset)) ' for stimulus: ' stimulus.name])
         end
     end
 

@@ -1,14 +1,14 @@
-%% load data and conver to mat file
+%% set up pat to load and save data
 close all; clear all; clc;
 scriptDir = fileparts(matlab.desktop.editor.getActiveFilename); 
 %add nirs-toolbox and subfolders to the search path
 addpath(genpath([scriptDir '\nirs-toolbox']))
 
 %provide the folder where the .oxy4 files are located
-dataPath = 'Y:\Shuqi\Nirs1VisitTM\ShuqiTest\Nirs';
+% dataPath = 'Y:\Shuqi\Nirs1VisitTM\ShuqiTest\Nirs';
+dataPath = [scriptDir '/Data/ShuqiTest']
 subjectID = 'ShuqiTest';
-% subjectFolderName = [scriptDir '\Data\' 'S07_Mackenzie\V02'];
-%%
+%% Load data, needs the Oxysoft as a COM-interface
 raw = nirs.io.loadDirectory(dataPath, {'subject'})
 %% plot to visualize the data and stimulus encoding
 for i=1:length(raw)

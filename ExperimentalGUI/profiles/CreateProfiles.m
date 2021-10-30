@@ -227,4 +227,48 @@ annotation('textbox', [.5,.001,.07,.05],'String','Adaptation','EdgeColor', 'none
 annotation('textbox', [.73,.001,.07,.05],'String','Overground','EdgeColor', 'none' ,'FontSize', 16,'Color','k','fontweight', 'bold');
 annotation('textbox', [.85,.001,.09,.05],'String','TM Washout','EdgeColor', 'none' ,'FontSize', 16,'Color','k','fontweight', 'bold');
 
+%% plot 1 session protocol
+velDom = [0.75*ones(1,150),0.5*ones(1,150),1*ones(1,150),0.75*ones(1,150)];
+% line([0,150],[0.75,0.75],'LindWidth',')
+velNonDom = velDom;
+velDom = [velDom,1*ones(1,900),0.75*ones(1,450)];
+velNonDom = [velNonDom,0.5*ones(1,900),0.75*ones(1,450)];
+%short perturbation
+velDom = [velDom, 0.75*ones(1,50), 1*ones(1,30),0.75*ones(1,50),0.75*ones(1,50), 0.5*ones(1,30),0.75*ones(1,50)];
+velNonDom = [velNonDom, 0.75*ones(1,50), 0.5*ones(1,30),0.75*ones(1,50),0.75*ones(1,50), 1*ones(1,30),0.75*ones(1,50)];
+
+close all
+figure;
+% adaptation area
+% area([600,1500],[1,1],0.5,'FaceColor','#edebe4','EdgeColor','#edebe4');
+
+hold on;
+%OG area
+area([0,150],[1,1],0.5,'FaceColor','#e4f7f6','EdgeColor','#e4f7f6');
+area([2100,length(velDom)],[1,1],0.5,'FaceColor','#d6d0a1','EdgeColor','#e4f7f6');
+plot(velDom, 'LineWidth',4,'Color','#0072BD');
+plot(velNonDom, 'LineWidth',3,'Color','#D95319');
+
+xticks([150,300,450,600,1500,1950,2080,2210])
+xlim([0,2210])
+yticks([0.5,0.75,1])
+ylabel('Speed (m/s)','fontsize',15)
+% xlabel('Stride')
+a = get(gca,'XTickLabel');  
+set(gca,'XTickLabel',a,'fontsize',15)
+
+breakloc = [300,750,1050,1350,1800,1950];
+for i = breakloc
+    xline(i,'k--','LineWidth',2);
+end
+f= get(gca,'Children');
+% legend(f([1, 6, 7,8,end]),'Break (5mins)','Non-Dominant Leg','Dominant Leg','Overground','Adaptation');
+legend(f([1, 1+length(breakloc), 2+length(breakloc),3+length(breakloc),4+length(breakloc)]),'Break (5mins)','Non-Dominant Leg','Dominant Leg','ShortSplit','Overground');
+
+delete(findall(gcf,'type','annotation'));
+% annotation('textbox', [.13,.001,.05,.05],'String','Overground','EdgeColor', 'none' ,'FontSize', 16,'Color','k','fontweight', 'bold');
+% annotation('textbox', [.24,.001,.09,.05],'String','TM Baseline','EdgeColor', 'none' ,'FontSize', 16,'Color','k','fontweight', 'bold');
+% annotation('textbox', [.5,.001,.07,.05],'String','Adaptation','EdgeColor', 'none' ,'FontSize', 16,'Color','k','fontweight', 'bold');
+% annotation('textbox', [.73,.001,.07,.05],'String','Overground','EdgeColor', 'none' ,'FontSize', 16,'Color','k','fontweight', 'bold');
+% annotation('textbox', [.85,.001,.09,.05],'String','TM Washout','EdgeColor', 'none' ,'FontSize', 16,'Color','k','fontweight', 'bold');
 

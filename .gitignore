@@ -4,6 +4,7 @@ externals_mightnotneed/*
 SwitchingCode/*
 WCS Code/*
 R01Nimbus2021-main/*
+*.png
 *.pdf
 NMCM.m
 ExperimentalGUI/profiles/*.png
