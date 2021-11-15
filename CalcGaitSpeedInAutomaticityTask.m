@@ -1,10 +1,10 @@
 %This script needs access to the Y drive data
-close all; clc;
-dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\TestPilot02\V01Processed\TestPilotS02';
+close all; clear all; clc;
+dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V01Processed\AUF03RAW';
 % subjectID = 'TestPilot02';
-% load(dataPath)
+load(dataPath)
 %%
-trialIDs = [7,8,11,12,13,14];%,11,12,13,14];
+trialIDs = [2];%,11,12,13,14];
 distWalk = nan(length(trialIDs),3); %in mm
 trialIdx = 1;
 for trialID = trialIDs
@@ -100,7 +100,10 @@ for trialID = trialIDs
     trialIdx = trialIdx + 1;
 end
 distWalk = distWalk / 1000 %in meters
-comment = 'Removed start walk time at index 3 and 5, end walk time at index 2 and 5, because there was one frame with no distance in between and in the end there was minor movements';
+gaitSpeed = distWalk / 20 %in meters/second
+% comment = 'Removed start walk time at index 3 and 5, end walk time at index 2 and 5, because there was one frame with no distance in between and in the end there was minor movements';
+
+%% save data
 save([dataPath, 'DistanceWalked'], 'distWalk')
 % %%
 % mask = ydiff > 1; %both x and y continuously increase (turning to start)

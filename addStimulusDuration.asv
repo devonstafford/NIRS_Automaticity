@@ -53,9 +53,9 @@ function raw = addStimulusDuration(raw, startingLetter, iterations)
         elseif (strcmp(es_string,'standAnd'))
             es_string = 'standAndAlphabet2';
         elseif (strcmp(es_string,'standAndEvery3'))
-            es_string = 'standAndAlphabet3';
-        elseif (strcmp(es_string,'walkAndEvery3'))
-            es_string = 'walkAndAlphabet3';
+            es_string = 'standAndAlphabet2';
+        elseif (strcmp(es_string,'standAnd'))
+            es_string = 'standAndAlphabet2';
         end
         stimulusClean(es_string) = nirs.design.StimulusEvents(es_string,currEventTimeList,eventDuration,[1;1;1;1;1;1]);
     end

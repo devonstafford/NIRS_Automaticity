@@ -54,7 +54,7 @@ SubjStatsVsBaseline=SubjStats.ttest({'walk-Rest_Before_Walk'
 SubjStatsDTVsST=SubjStats.ttest({'walkAndAlphabet2-standAndAlphabet2'
                             'walkAndAlphabet3-standAndAlphabet3'
                             'walkAndAlphabet2-walk'
-                            'walkAndAlphabet3-walk'
+                            'walkAndAlphabet3-standAndAlphabet3'
                             })
 
 
@@ -66,10 +66,12 @@ ROI{2}=table(2,NaN,'VariableNames',{'detector','source'});
 tableByDetectorRaw=nirs.util.roiAverage(SubjStats,ROI,{'Det1','Det2'}); %conditions x 4(2dectorx2signal(hbo and hbr))
 ROIc=table(NaN,NaN,'VariableNames',{'detector','source'});
 tablePFCRaw=nirs.util.roiAverage(SubjStats,ROIc,{'PFC'});  
+% Locate statisitcally significant pairs with q <= 0.05
+sigIndex = find(SubjStatsVsBaseline.q <= 0.05);
+sigpairs = SubjStatsVsBaseline.variables(sigIndex,:);
 
 % hbo = hemoglobin, hbr = deoxy-hemoglobin
 tableByDetector_VsBaseline=nirs.util.roiAverage(SubjStatsVsBaseline,ROI,{'Det1','Det2'});
-% Locate statisitcally significant pairs with q <= 0.05
 sigIndexDetector_VsBaseline = tableByDetector_VsBaseline.q <= 0.05;
 sigpairsDetector_VsBaseline = tableByDetector_VsBaseline(sigIndexDetector_VsBaseline,:);
 
@@ -84,15 +86,14 @@ sigIndexDetector_DTvsST = find(tableByDetector_DTvsST.q <= 0.05);
 sigpairsDetector_DTvsST = tableByDetector_DTvsST(sigIndexDetector_DTvsST,:);
 
 %combined
+ROIc=table(NaN,NaN,'VariableNames',{'detector','source'});
 tablePFC_DTvsST=nirs.util.roiAverage(SubjStatsDTVsST,ROIc,{'PFC'});  
 sigIndexPFC_DTvsST = find(tablePFC_DTvsST.q <= 0.05);
 sigpairsPFC_DTvsST = tablePFC_DTvsST(sigIndexPFC_DTvsST,:);
 
 if saveResAndFigure
-    save([dataPath subjectID 'OutcomeMeasures'], 'SubjStats','SubjStatsVsBaseline','SubjStatsDTVsST',...
-        'tableByDetectorRaw','tablePFCRaw','tableByDetector_VsBaseline',...
-        'sigIndexDetector_VsBaseline','sigpairsDetector_VsBaseline','tablePFC_VsBaseline','sigIndexPFC_VsBaseline','sigpairsPFC_VsBaseline',...
-        'tablePFC_VsBaseline','sigIndexDetector_DTvsST','sigpairsDetector_DTvsST','tablePFC_DTvsST','sigIndexPFC_DTvsST','sigpairsPFC_DTvsST');
+    save([dataPath 'OutcomeMeasures'], ,'tableByDetectorRaw','tablePFCRaw','tableByDetector_VsBaseline',...
+        'tablePFC','tablePFC_VsBaseline');
 end
 
 %% Output channel-wise SubjStats table - Needs demographic data
