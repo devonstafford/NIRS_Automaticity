@@ -1,12 +1,12 @@
 clear 
 cd '/Users/neminchen/Box/ebrain/fNIRS/NMCM/Datasets'
 folder = '/Users/neminchen/Box/Rosso Study Files/NMCM Study/NMCM Data/NIRS Accelerometry GaitMat Files';
-xlfile='/Users/neminchen/Box/Rosso Study Files/NMCM Study/NMCM Data/Excel Data for NMCM/Final Data Set/Mobility Final Data Set for NMCM.xlsx';
+xlfile='C:\Users\SHL187\OneDrive - University of Pittsburgh\SML\Projects\fNIR Project\Code_NIRS_Automaticity\Data\002nirsdata\Mobility Final Data Set for NMCM.xlsx';
 
 folder = '/Users/mac/OneDrive - University of Pittsburgh/SML/Projects/fNIR Project/Code_NIRS_Automaticity/Data/002nirsdata'
 
 %% load the data
-folder = '/Users/mac/Desktop/Lab/SMLLab/Code/NIRS_Automaticity/data/002nirsdata';
+folder = 'C:\Users\SHL187\OneDrive - University of Pittsburgh\SML\Projects\fNIR Project\Code_NIRS_Automaticity\Data\002nirsdata\';
 raw = nirs.io.loadDirectory(folder,{'subject'});
 
 rawt = fix_Andi_data_N(raw,xlfile);

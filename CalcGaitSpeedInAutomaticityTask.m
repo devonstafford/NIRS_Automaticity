@@ -1,10 +1,32 @@
 %This script needs access to the Y drive data
 close all; clear all; clc;
-dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V01Processed\AUF03RAW';
-% subjectID = 'TestPilot02';
-load(dataPath)
+dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V04\';
+load([dataPath 'NirsParam\AUF03V04AutoTasktViconRAW.mat']) %load rawExpData from c3d2mat
+saveResAndFigure = true;
+subjectID = 'AUF03V04';
+
+%% Find or create the DTdata data structure, find task orders to populate the DTdata
+[DTdata, DTdataRowNameMap] = GetDTDataStructure([dataPath subjectID 'DTdata.mat']); %if exists one load it TODO
+
+userID = split(subjectID,'V');
+visitNum = str2num(userID{2});
+if visitNum == 4
+    visitNum = 2;
+end
+userID = str2num(userID{1}(end-1:end));
+scriptDir = fileparts(matlab.desktop.editor.getActiveFilename);
+load([scriptDir '/Data/SubjectTaskAlphabetRandomizationOrder.mat'])
+taskOrder = taskOrders(userID, :);
+alphabet = alphabetOrder(userID,visitNum);
+
+if alphabet==1 %'A'
+    all_events = [2 4 3 1 5;4 3 2 1 5;3 1 2 4 5; 3 2 4 5 1;3 4 1 2 5;2 3 5 4 1];
+else %B
+   all_events= [7 8 3 6 9; 8 3 7 6 9; 3 6 7 8 9; 3 7 8 9 6; 3 8 6 7 9; 7 3 9 8 6]; 
+end
+
 %%
-trialIDs = [2];%,11,12,13,14];
+trialIDs = [2,4:8];%,4:8];%,11,12,13,14];
 distWalk = nan(length(trialIDs),3); %in mm
 trialIdx = 1;
 for trialID = trialIDs
@@ -15,8 +37,8 @@ for trialID = trialIDs
     hipX = nanmean([rhipx, lhipx],2);
     hipY = nanmean([rhipy, lhipy],2);
 
-    %%
-    figure; 
+    %% Plot x and y hip positions
+    f1 = figure('units','normalized','outerposition',[0 0 1 1]); 
     plot(hipX)
     hold on;
     plot(hipY);
@@ -29,12 +51,12 @@ for trialID = trialIDs
     %stable, when x is changing faster (moving horizontally/turning), x should
     %change slowly
     
-    %%
+    % compute difference (distance in x and y per frame) and eucledian distance travelled per frame
     xdiff = diff(hipX);
     ydiff = diff(hipY);
     dist = sqrt(xdiff.^2 + ydiff.^2);
     
-    %% compute time
+    % find the frames that participants are moving
     dist = reshape(dist, 1, length(dist)); %make it row vector
     walkMask = dist > 1; %find all cases where distance travelled > 0.5 from btw 2 frames
     thresholdFrames = 150; %if happens continuously for 150 frames: walking
@@ -57,22 +79,22 @@ for trialID = trialIDs
     if length(startWalkingFrame) ~= 3 || length(stopWalkingFrame) ~=3
         warning('The index found is incorrect. Double check to fix it')
     end
-    if trialID == 8
-        startWalkingFrame = [startWalkingFrame(1:2) startWalkingFrame(4)]
-        stopWalkingFrame = [stopWalkingFrame(1) stopWalkingFrame(3:4)]
-    elseif trialID == 11
-        startWalkingFrame(end) = []
-        stopWalkingFrame(end-1) = []
-    elseif trialID == 12 || trialID == 13
-        startWalkingFrame(end) = []
-        stopWalkingFrame(end) = []
-    elseif trialID == 14
-        startWalkingFrame(end-1:end) = []
-        stopWalkingFrame(end-1:end) = []
-    end
+    %manual fixes
+%     if trialID == 7 %ignore the last one
+%         startWalkingFrame(end) = [] %ignore the last one
+%         stopWalkingFrame(end) = []
+% %     elseif trialID == 11
+%         startWalkingFrame(end) = []
+%         stopWalkingFrame(end-1) = []
+%     elseif trialID == 12 || trialID == 13
+%         startWalkingFrame(end) = []
+%         stopWalkingFrame(end) = []
+%     elseif trialID == 14
+%         startWalkingFrame(end-1:end) = []
+%         stopWalkingFrame(end-1:end) = []
+%     end
 
-    %% Plot the finding
-    %plot on top of the x and y mark figure
+    %plot on top of the x and y mark figure, the start/stop frames
     yrange = ylim;
     for stp = startWalkingFrame
         plot([stp, stp],ylim,'k--')
@@ -81,8 +103,11 @@ for trialID = trialIDs
         plot([stp, stp],ylim,'r--')
     end
     legend('X','Y','Start1','Start2','Start3','Stop1','Stop2','Stop3');
+    title(['Trial ' num2str(trialIDs(trialIdx))])
 
-    figure; plot(dist);
+    %plot the distance travelled per frame and start and stop marks.
+    f2=figure('units','normalized','outerposition',[0 0 1 1]); 
+    plot(dist);
     hold on;
     for stp = startWalkingFrame
         plot([stp, stp],ylim,'k--')
@@ -91,21 +116,50 @@ for trialID = trialIDs
         plot([stp, stp],ylim,'r--')
     end
     plot(xlim,[1 1],'k.-')
+    ylabel('EucledianDistance Traveld Per Frame (mm)')
+    xlabel('Frame Number (Collected at 100Hz)')
     legend('EucledianDistance','Start1','Start2','Start3','Stop1','Stop2','Stop3');
-
-    %%
+    title(['Trial ' num2str(trialIDs(trialIdx))])
+    
+    if saveResAndFigure
+        saveDir = [dataPath 'walkDistFigure\'];
+        if ~exist(saveDir,'dir')
+            mkdir(saveDir)
+        end
+        saveas(f1, [saveDir 'XYHipPostPerFrame_Trial' num2str(trialIDs(trialIdx))])
+        saveas(f2, [saveDir 'EucledianDistancePerFrame_Trial' num2str(trialIDs(trialIdx))])
+    end
+    
+    %compute distance walked and save into a table
     for idx = 1:length(startWalkingFrame)
-        distWalk(trialIdx,idx) = nansum(dist(startWalkingFrame(idx):stopWalkingFrame(idx)));
+        distWalk(trialIdx,idx) = nansum(dist(startWalkingFrame(idx):stopWalkingFrame(idx)))/1000; %in meters
+    end
+    
+    %% Populate the walk distance into corresponding task and trial in the DTdata table.
+    %1 = stand and alphabet A, 2 = walk and alphabet A, 3 = walk, 4 = stand and
+    %alphabet 3 A, 5 = walk and alphabet 3 A; 6 = stand and alphabet B, 7 = walk and alphabet B, 8 = stand and
+    %alphabet 3B, 9 = walk and alphabet 3B
+    for i = taskOrder(trialIdx)
+        curr_seq = all_events(i,:);
+        walkTaskIdx = 1;
+        for task = curr_seq
+            if ismember(task, [1,4,6,8])
+                continue
+            end
+            DTdata.data{DTdataRowNameMap(task),'walkDist'}(trialIdx) = distWalk(trialIdx,walkTaskIdx);
+            walkTaskIdx = walkTaskIdx + 1;
+        end
     end
     trialIdx = trialIdx + 1;
 end
-distWalk = distWalk / 1000 %in meters
-gaitSpeed = distWalk / 20 %in meters/second
+distWalk
+% gaitSpeed = distWalk / 20 %in meters/second
 % comment = 'Removed start walk time at index 3 and 5, end walk time at index 2 and 5, because there was one frame with no distance in between and in the end there was minor movements';
 
 %% save data
-save([dataPath, 'DistanceWalked'], 'distWalk')
-% %%
+save([dataPath subjectID 'DistanceWalked'], 'distWalk')
+save([dataPath subjectID 'DTdata.mat'],'DTdata')
+%%
 % mask = ydiff > 1; %both x and y continuously increase (turning to start)
 % thresholdFrames = 150;
 % activeThreshold = repmat(1,thresholdFrames,1);

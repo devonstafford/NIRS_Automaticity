@@ -3,105 +3,222 @@ close all; clear all; clc;
 scriptDir = fileparts(matlab.desktop.editor.getActiveFilename); 
 % raw = nirs.core.Data.empty;
 % raw(2) = data.raw; %can simply add in this way
-dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V01Nirs\';
-subjectID = 'AUF03';
-saveResAndFigure = false;
-data = load([dataPath subjectID 'NirsStimulusCleaned.mat']);
+dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V01\NIRS\';
+resSavePath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V01\Results\Nirs\';
+subjectID = 'AUF03V01';
+saveResAndFigure = true;
+data = load([dataPath subjectID 'NirsStimDemoCleaned.mat']);
 raw = data.raw;
-
+raw = raw(2:7); %ignore the practice trial
 %% plot the raw data
 for i=1:length(raw)
     f1 = figure('units','normalized','outerposition',[0 0 1 1]);
     raw(i).draw
+    legend('Location','bestoutside')
+    title(['Raw Signal Iteration ' num2str(i)])
     if saveResAndFigure
-        saveas(f1, [dataPath subjectID 'RawSignalTrial' num2str(i) '.png'])
-        saveas(f1, [dataPath subjectID 'RawSignalTrial' num2str(i) '.fig'])
+        saveas(f1, [dataPath 'Processed\' subjectID 'RawSignalIteration' num2str(i) '.png'])
+        saveas(f1, [dataPath 'Processed\' subjectID 'RawSignalIteration' num2str(i) '.fig'])
     end
 end
 
-%% now processing
+%% clean up probes
+raw = updateProbeInfo(raw);
+
+%% now processing to get Hbo/hbr
 j=nirs.modules.RemoveStimless;
 j=nirs.modules.OpticalDensity(j);
 j=nirs.modules.Resample(j);
 j=nirs.modules.BeerLambertLaw(j);
 Hb=j.run(raw);
 
+%%
 close all;
 for i=1:length(Hb)
     f2 = figure('units','normalized','outerposition',[0 0 1 1]);
     Hb(i).draw
+    title(['Hbo Iteration ' num2str(i)])
+    fprintf('\nIteration %d Data range: %d',i,range(Hb(i).data,'all'))
     if saveResAndFigure
-        saveas(f2, [dataPath subjectID 'HboSignalTrial' num2str(i) '.png'])
-        saveas(f2, [dataPath subjectID 'HboSignalTrial' num2str(i) '.fig'])
+        saveas(f2, [dataPath 'Processed\'  subjectID 'HboSignalIteration' num2str(i) '.png'])
+        saveas(f2, [dataPath 'Processed\'  subjectID 'HboSignalIteration' num2str(i) '.fig'])
     end
 end
-
+%% figure is small bc of the large spike of signal at the beginning
+% zoom in the figures and save a snapshot in png
+figHandles = findobj('Type', 'figure'); %get all open figures
+s=findobj('type','legend');
+delete(s);
+for i=1:numel(figHandles)
+    ax=findobj(figHandles(i),'Type','axes');
+    for axIdx=1:numel(ax)
+        ylim(ax(axIdx), [-700 500])
+    end
+    if saveResAndFigure
+        saveas(figHandles(i), [dataPath 'Processed\'  subjectID 'HboSignalIteration' ax.Title.String(end) 'ZoomedIn.png'])
+    end
+end
 %% GLM
+Hb = j.run(raw);
 j=nirs.modules.GLM;
 j.goforit=true;
 SubjStats=j.run(Hb); %A ChannelStats object, with variables: stimulus x 2(hbo or hbr) x 8 (sources)
 
 %% compare each active condition against baseline + compare walk with alphabet vs walk alone
-SubjStatsVsBaseline=SubjStats.ttest({'walk-Rest_Before_Walk'
+SubjStatsVsBaselinePerTrial=SubjStats.ttest({'walk-Rest_Before_Walk'
                             'standAndAlphabet2-Rest_Before_Stand_And_Alphabet'
                             'walkAndAlphabet2-Rest_Before_Walk_And_Alphabet'
                             'standAndAlphabet3-Rest_Before_Stand_And_Alphabet_3'
                             'walkAndAlphabet3-Rest_Before_Walk_And_Alphabet_3'
-                            })
+                            },[],...
+                           {'WalkRestCorrected','StandAndAlphabet2RC','WalkAndAlphabet2RC','StandAndAlphabet3RC','WalkAndAlphabet3RC'});
 %                         last argument = condition name, if not provided
-%                         use the first argument as the default
+%                         use the first argument as the default; here
+%                         provide name to avoid the reserved string "-" in
+%                         the name for future comparison
 
-SubjStatsDTVsST=SubjStats.ttest({'walkAndAlphabet2-standAndAlphabet2'
-                            'walkAndAlphabet3-standAndAlphabet3'
-                            'walkAndAlphabet2-walk'
-                            'walkAndAlphabet3-walk'
-                            })
-
-
-
-%% ROI wise - condense to by detector (left/right) or overall PFC
+SubjStatsDTVsSTPerTrial=SubjStatsVsBaselinePerTrial.ttest({'WalkAndAlphabet2RC-StandAndAlphabet2RC'
+                            'WalkAndAlphabet3RC-StandAndAlphabet3RC'
+                            'WalkAndAlphabet2RC-WalkRestCorrected'
+                            'WalkAndAlphabet3RC-WalkRestCorrected'
+                            },[],{'WalkAlphabet2VsStandAlphabet2','WalkAlphabet3VsStandAlphabet3','WalkAlphabet2VsWalk','WalkAlphabet3VsWalk'});
+%% ROI wise by trial - condense to by detector (left/right) or overall PFC
 % define some ROIs
 ROI{1}=table(1,NaN,'VariableNames',{'detector','source'});
 ROI{2}=table(2,NaN,'VariableNames',{'detector','source'});
-tableByDetectorRaw=nirs.util.roiAverage(SubjStats,ROI,{'Det1','Det2'}); %conditions x 4(2dectorx2signal(hbo and hbr))
+tableSrcRaw=nirs.util.roiAverage(SubjStats,ROI,{'Det1','Det2'}); %conditions x 4(2dectorx2signal(hbo and hbr))
 ROIc=table(NaN,NaN,'VariableNames',{'detector','source'});
 tablePFCRaw=nirs.util.roiAverage(SubjStats,ROIc,{'PFC'});  
 
 % hbo = hemoglobin, hbr = deoxy-hemoglobin
-tableByDetector_VsBaseline=nirs.util.roiAverage(SubjStatsVsBaseline,ROI,{'Det1','Det2'});
+tableSrc_VsBasePerTrial=nirs.util.roiAverage(SubjStatsVsBaselinePerTrial,ROI,{'Source1','Source2'});
 % Locate statisitcally significant pairs with q <= 0.05
-sigIndexDetector_VsBaseline = tableByDetector_VsBaseline.q <= 0.05;
-sigpairsDetector_VsBaseline = tableByDetector_VsBaseline(sigIndexDetector_VsBaseline,:);
+% sigIndexDetector_VsBaseline = tableSrc_VsBasePerTrial.q <= 0.05;
+% sigpairsDetector_VsBaseline = tableSrc_VsBasePerTrial(sigIndexDetector_VsBaseline,:);
 
 %combined
-tablePFC_VsBaseline=nirs.util.roiAverage(SubjStatsVsBaseline,ROIc,{'PFC'});  
-sigIndexPFC_VsBaseline = tablePFC_VsBaseline.q <= 0.05;
-sigpairsPFC_VsBaseline = tablePFC_VsBaseline(sigIndexPFC_VsBaseline,:);
+tablePFC_VsBasePerTrial=nirs.util.roiAverage(SubjStatsVsBaselinePerTrial,ROIc,{'PFC'});  
+% sigIndexPFC_VsBaseline = tablePFC_VsBaselinePerTrial.q <= 0.05;
+% sigpairsPFC_VsBaseline = tablePFC_VsBaselinePerTrial(sigIndexPFC_VsBaseline,:);
 
 %DT vs ST
-tableByDetector_DTvsST=nirs.util.roiAverage(SubjStatsDTVsST,ROI,{'Det1','Det2'});
-sigIndexDetector_DTvsST = find(tableByDetector_DTvsST.q <= 0.05);
-sigpairsDetector_DTvsST = tableByDetector_DTvsST(sigIndexDetector_DTvsST,:);
+tableSrc_DTvsSTPerTrial=nirs.util.roiAverage(SubjStatsDTVsSTPerTrial,ROI,{'Det1','Det2'});
+% sigIndexDetector_DTvsST = find(tableBySrc_DTvsSTPerTrial.q <= 0.05);
+% sigpairsDetector_DTvsST = tableBySrc_DTvsSTPerTrial(sigIndexDetector_DTvsST,:);
 
 %combined
-tablePFC_DTvsST=nirs.util.roiAverage(SubjStatsDTVsST,ROIc,{'PFC'});  
-sigIndexPFC_DTvsST = find(tablePFC_DTvsST.q <= 0.05);
-sigpairsPFC_DTvsST = tablePFC_DTvsST(sigIndexPFC_DTvsST,:);
+tablePFC_DTvsSTPerTrial=nirs.util.roiAverage(SubjStatsDTVsSTPerTrial,ROIc,{'PFC'});  
+% sigIndexPFC_DTvsST = find(tablePFC_DTvsSTPerTrial.q <= 0.05);
+% sigpairsPFC_DTvsST = tablePFC_DTvsSTPerTrial(sigIndexPFC_DTvsST,:);
 
-if saveResAndFigure
-    save([dataPath subjectID 'OutcomeMeasures'], 'SubjStats','SubjStatsVsBaseline','SubjStatsDTVsST',...
-        'tableByDetectorRaw','tablePFCRaw','tableByDetector_VsBaseline',...
-        'sigIndexDetector_VsBaseline','sigpairsDetector_VsBaseline','tablePFC_VsBaseline','sigIndexPFC_VsBaseline','sigpairsPFC_VsBaseline',...
-        'tablePFC_VsBaseline','sigIndexDetector_DTvsST','sigpairsDetector_DTvsST','tablePFC_DTvsST','sigIndexPFC_DTvsST','sigpairsPFC_DTvsST');
+%% Output channel-wise SubjStats per subject, pull all repetitions together, needs demographics data to know what trials to group together
+j=nirs.modules.SubjLevelStats;
+SubjStatsVsBaseline=j.run(SubjStatsVsBaselinePerTrial);
+SubjStatsDTVsST=j.run(SubjStatsDTVsSTPerTrial);
+
+%% plot the results per subject (across trials)
+close all;
+SubjStatsVsBaseline.draw('tstat',[],'q < 0.05') %plot q<0.05 with solid and others with dashed line
+SubjStatsDTVsST.draw('tstat',[],'q < 0.05') %plot q<0.05 with solid and others with dashed line
+
+%set up figures, add legend and save results
+detectorCount = 8; %8 detectors, almost always true
+legendString = cell(1,detectorCount);
+for i = 1:detectorCount 
+    legendString{i} = ['S' num2str(i)];
+end
+figHandles = findobj('Type', 'figure'); %get all open figures
+for i=1:numel(figHandles)
+    ax=findobj(figHandles(i),'Type','axes');
+    for j=1:numel(ax)
+        legend(ax(j),legendString,'Location','bestoutside');
+    end
+    if saveResAndFigure
+        saveas(figHandles(i),[resSavePath subjectID 'Stats_' erase(ax.Title.String,' : ')])
+        saveas(figHandles(i),[resSavePath subjectID 'Stats_' erase(ax.Title.String,' : ') '.png'])
+    end
 end
 
-%% Output channel-wise SubjStats table - Needs demographic data
-% TODO: how to proceed from here
-j=nirs.modules.SubjLevelStats;
-SubjStats3=j.run(SubjStats);
-SubjStats4=j.run(SubjStats2);
+%print out the non-sig pairs for reference
 
-%% 
+%% stats per subject by ROI
+% hbo = hemoglobin, hbr = deoxy-hemoglobin
+%the function returns the ROIstats in a ChannelStats data structure too,
+%for now not used.
+[tableSrc_VsBase, ~] =nirs.util.roiAverage(SubjStatsVsBaseline,ROI,{'Source1','Source2'});
+tablePFC_VsBase=nirs.util.roiAverage(SubjStatsVsBaseline,ROIc,{'PFC'});  
+tableSrc_DTvsST =nirs.util.roiAverage(SubjStatsDTVsST,ROI,{'Source1','Source2'});
+tablePFC_DTvsST=nirs.util.roiAverage(SubjStatsDTVsST,ROIc,{'PFC'});  
+
+%% plot ROI results
+% figure from ROIstats directly is off, manually do it
+% ROIstats.draw('tstat',[],'q < 0.05') %plot q<0.05 with solid and others with dashed line
+tableToPlot = {tableSrc_VsBase, tableSrc_DTvsST, tablePFC_VsBase, tablePFC_DTvsST};
+gapBtwGroups = 1; %figure setting, gaps between groups of bar plots
+close all;
+for tblIdx = 1:length(tableToPlot) %first 2 sources x hbr and hbo, then 1PFC x 2 (hbr and hbo)
+    if tblIdx <= 2
+        groups = 4;
+        xlabels = {'Source1 hbo','Source1 hbr','Source2 hbo','Source2 hbr'};
+        
+        if tblIdx == 1
+            titleId = 'By Source (Compared to Rest Baseline)';
+            saveNameId = 'VsBase_BySource';
+        else
+            titleId = 'By Source (DT vs ST)';
+            saveNameId = 'DTvsST_BySource';
+        end
+    else
+        groups = 2;
+        xlabels = {'hbo','hbr'};
+        if tblIdx == 3
+            titleId = 'PFC (Compared to Rest Baseline)';
+            saveNameId = 'VsBase_PFC';
+        else
+            titleId = 'PFC (DT vs ST)';
+            saveNameId = 'DTvsST_PFC';
+        end
+    end
+    tableByROI = tableToPlot{tblIdx};
+    f = figure('units','normalized','outerposition',[0 0 1 1]);
+    hold on;
+    conds = unique(tableByROI.Contrast);
+    sigMarkOffset = range(tableByROI.T) * 0.03;
+    for condIdx = 1:length(conds)
+        dataToPlot = tableByROI(strcmp(tableByROI.Contrast,conds{condIdx}),:);
+        %find x location (not the best bc the bars won't allocate the width themsevles)
+        % end idx is groups * conds + groups - 1 (add gaps)
+        barXLocs = condIdx:length(conds)+gapBtwGroups:groups*(length(conds)+gapBtwGroups)-1;
+        bar(barXLocs, dataToPlot.T,'BarWidth', 1/(length(conds)+1));
+        sigIdx = dataToPlot.q < 0.05; %logical array to index significant values
+        scatter(barXLocs(sigIdx), sign(dataToPlot.T(sigIdx)) .* (abs(dataToPlot.T(sigIdx)) + sigMarkOffset),'*','k');
+    end
+    %xticks in the middle, 
+    condIdx = 3;
+    xticks(condIdx:length(conds)+1:(groups+1)*length(conds)-1);
+    xticklabels(xlabels)
+    graphItems = get(gca,'Children'); %last item plotted is at index 1.
+    legend(graphItems([2*[length(conds):-1:1], 1]),[conds;'q < 0.05'],'Location','best'); %legend for bars and 1 astricks
+    ylabel('T-stats (T-value)')
+    title([subjectID ' T - stats ' titleId])
+    xlim([0, groups*(length(conds)+gapBtwGroups)])
+    set(findall(gcf,'-property','FontSize'),'FontSize',30)
+    if saveResAndFigure
+        saveas(f,[resSavePath subjectID 'Stats' saveNameId])
+        saveas(f,[resSavePath subjectID 'Stats' saveNameId '.png'])
+    end
+end
+
+%% save results
+if saveResAndFigure
+    %save the AUF01/V01/ directly
+    save([dataPath(1:end-5) subjectID 'NirsStatsTables.mat'],'-regexp','SubjStats*','tablePFC*','tableSrc*');
+    DTdata = GetDTDataStructure([dataPath(1:end-5) subjectID 'DTdata.mat']);
+    DTdata.statsTables = load([dataPath(1:end-5) subjectID 'NirsStatsTables.mat']);
+    save([dataPath(1:end-5) subjectID 'DTdata.mat'],'DTdata');
+end
+
+%% TODO from here
 %for i=1:length(SubjStats);
 %    SubjStats(i).draw
 %    figure()

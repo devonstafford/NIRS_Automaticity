@@ -3,8 +3,8 @@ close all; clear all; clc;
 scriptDir = fileparts(matlab.desktop.editor.getActiveFilename); 
 % raw = nirs.core.Data.empty;
 % raw(2) = data.raw; %can simply add in this way
-dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V01Nirs\';
-subjectID = 'AUF03';
+dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V04\NIRS\';
+subjectID = 'AUF03V04';
 saveResAndFigure = false;
 data = load([dataPath subjectID 'NirsStimulusCleaned.mat']);
 raw = data.raw;
@@ -18,6 +18,10 @@ for i=1:length(raw)
         saveas(f1, [dataPath subjectID 'RawSignalTrial' num2str(i) '.fig'])
     end
 end
+
+%% load alignment version 
+for version = 1:6
+load(['\\TORRES-PRC.bioe.pitt.edu\Users\Shuqi\NirsAutomaticityStudy\Data\AUF01\V01\V01NIRSRecoveryAttempt1\NoRestAUF01NirsStimulusAlignmentV' num2str(version) '.mat'])
 
 %% now processing
 j=nirs.modules.RemoveStimless;
@@ -54,11 +58,17 @@ SubjStatsVsBaseline=SubjStats.ttest({'walk-Rest_Before_Walk'
 SubjStatsDTVsST=SubjStats.ttest({'walkAndAlphabet2-standAndAlphabet2'
                             'walkAndAlphabet3-standAndAlphabet3'
                             'walkAndAlphabet2-walk'
-                            'walkAndAlphabet3-standAndAlphabet3'
+                            'walkAndAlphabet3-walk'
                             })
 
 
-
+%%
+statsv = struct();
+statsv.subjstats = SubjStats;
+statsv.subjStatsDTvsST = SubjStatsDTVsST;
+statsv.subjStatsVsBaseline = SubjStatsVsBaseline;
+eval(['statsv' num2str(version) '=statsv'])
+end
 %% ROI wise - condense to by detector (left/right) or overall PFC
 % define some ROIs
 ROI{1}=table(1,NaN,'VariableNames',{'detector','source'});
@@ -66,12 +76,10 @@ ROI{2}=table(2,NaN,'VariableNames',{'detector','source'});
 tableByDetectorRaw=nirs.util.roiAverage(SubjStats,ROI,{'Det1','Det2'}); %conditions x 4(2dectorx2signal(hbo and hbr))
 ROIc=table(NaN,NaN,'VariableNames',{'detector','source'});
 tablePFCRaw=nirs.util.roiAverage(SubjStats,ROIc,{'PFC'});  
-% Locate statisitcally significant pairs with q <= 0.05
-sigIndex = find(SubjStatsVsBaseline.q <= 0.05);
-sigpairs = SubjStatsVsBaseline.variables(sigIndex,:);
 
 % hbo = hemoglobin, hbr = deoxy-hemoglobin
 tableByDetector_VsBaseline=nirs.util.roiAverage(SubjStatsVsBaseline,ROI,{'Det1','Det2'});
+% Locate statisitcally significant pairs with q <= 0.05
 sigIndexDetector_VsBaseline = tableByDetector_VsBaseline.q <= 0.05;
 sigpairsDetector_VsBaseline = tableByDetector_VsBaseline(sigIndexDetector_VsBaseline,:);
 
@@ -86,15 +94,20 @@ sigIndexDetector_DTvsST = find(tableByDetector_DTvsST.q <= 0.05);
 sigpairsDetector_DTvsST = tableByDetector_DTvsST(sigIndexDetector_DTvsST,:);
 
 %combined
-ROIc=table(NaN,NaN,'VariableNames',{'detector','source'});
 tablePFC_DTvsST=nirs.util.roiAverage(SubjStatsDTVsST,ROIc,{'PFC'});  
 sigIndexPFC_DTvsST = find(tablePFC_DTvsST.q <= 0.05);
 sigpairsPFC_DTvsST = tablePFC_DTvsST(sigIndexPFC_DTvsST,:);
 
 if saveResAndFigure
-    save([dataPath 'OutcomeMeasures'], ,'tableByDetectorRaw','tablePFCRaw','tableByDetector_VsBaseline',...
-        'tablePFC','tablePFC_VsBaseline');
+    save([dataPath subjectID 'OutcomeMeasures'], 'SubjStats','SubjStatsVsBaseline','SubjStatsDTVsST',...
+        'tableByDetectorRaw','tablePFCRaw','tableByDetector_VsBaseline',...
+        'sigIndexDetector_VsBaseline','sigpairsDetector_VsBaseline','tablePFC_VsBaseline','sigIndexPFC_VsBaseline','sigpairsPFC_VsBaseline',...
+        'tablePFC_VsBaseline','sigIndexDetector_DTvsST','sigpairsDetector_DTvsST','tablePFC_DTvsST','sigIndexPFC_DTvsST','sigpairsPFC_DTvsST');
 end
+
+%% Draw the stats
+SubjStatsVsBaseline(1).draw
+SubjStatsDTVsST(1).draw
 
 %% Output channel-wise SubjStats table - Needs demographic data
 % TODO: how to proceed from here

@@ -25,7 +25,7 @@ function in= AddingConditionsNirs(in, oldConditionName, newConditions, splitBegi
 
     % find the index with speed difference or speed at 1 but also within the
     % current condition of interes
-    idxSplit=find(difference>400 & in.data.Data(:,columnIdxForTrialNum) == trialNum);
+    idxSplit=find(abs(difference)>200 & in.data.Data(:,columnIdxForTrialNum) == trialNum);
     if splitBeginOrEnd
         idxSplit = idxSplit(1);
     else
@@ -55,7 +55,7 @@ function in= AddingConditionsNirs(in, oldConditionName, newConditions, splitBegi
             end
         end
         in.metaData.trialsInCondition(loc:end) = newTrialsInConds;
-        in.data.trialTypes = {in.data.trialTypes{1:trialNum} in.data.trialTypes{trialNum+1} in.data.trialTypes{trialNum+1:end}};
+        in.data = in.data.setTrialTypes({in.data.trialTypes{1:trialNum} in.data.trialTypes{trialNum+1} in.data.trialTypes{trialNum+1:end}});
         in.data.Data(idxSplit:end,columnIdxForTrialNum) = in.data.Data(idxSplit:end,columnIdxForTrialNum) +1;
     else
         fprintf('Not implemented.\n')
@@ -67,7 +67,7 @@ function in= AddingConditionsNirs(in, oldConditionName, newConditions, splitBegi
         for i = loc+1:currConditionLength
             if ~isempty(in.metaData.trialsInCondition{i})
                 newTrialsInConds{i-loc+1} = in.metaData.trialsInCondition{i}+1;
-                maxTrial = newTrialsInConds{i-loc+1}
+                maxTrial = newTrialsInConds{i-loc+1};
                 maxTrial = maxTrial(end);
             else
                 newTrialsInConds{i-loc+1} = [];
@@ -77,7 +77,7 @@ function in= AddingConditionsNirs(in, oldConditionName, newConditions, splitBegi
         in.metaData.conditionName = [in.metaData.conditionName{1:loc}, {newConditions}, in.metaData.conditionName{loc+1:end}];
         in.metaData.conditionDescription = [in.metaData.conditionDescription{1:loc}, {newDecription}, in.metaData.conditionDescription{loc+1:end}];
         in.metaData.Ntrials = maxTrial;
-        in.data.trialTypes = {in.data.trialTypes{1:trialNum} in.data.trialTypes{trialNum+1} in.data.trialTypes{trialNum+1:end}};
+        in.data = in.data.setTrialTypes({in.data.trialTypes{1:trialNum} in.data.trialTypes{trialNum} in.data.trialTypes{trialNum+1:end}});
         in.data.Data(idxSplit:end,columnIdxForTrialNum) = in.data.Data(idxSplit:end,columnIdxForTrialNum) +1;
         
 %         in.metaData.conditionName{currConditionLength+1}=newConditions;
