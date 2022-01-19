@@ -3,8 +3,8 @@ close all; clear all; clc;
 scriptDir = fileparts(matlab.desktop.editor.getActiveFilename); 
 % raw = nirs.core.Data.empty;
 % raw(2) = data.raw; %can simply add in this way
-dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V04\NIRS\';
-subjectID = 'AUF03V04';
+[dataPath, ~, ~, subjectID, ~] = setupDataPath('AUF03', 'V04', 'NIRS', 'NIRS');
+
 saveResAndFigure = false;
 data = load([dataPath subjectID 'NirsStimulusCleaned.mat']);
 raw = data.raw;

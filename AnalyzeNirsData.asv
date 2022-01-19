@@ -22,10 +22,9 @@ saveResAndFigure = true;
 data = load([dataPath subjectID 'NirsStimDemoCleaned.mat']);
 raw = data.raw;
 rawFull = raw;
-validTrialIdx = [2,4:7];
-fprintf('\nIgnoring practice trial. Using index: ')
-validTrialIdx
-raw = raw(validTrialIdx); %ignore the practice trial
+ana
+fprintf('\nIgnoring practice trial. Using index%d : %d\n',2,7)
+raw = raw([2,4:7]); %ignore the practice trial
 
 if ~isfolder(resSavePath)
     mkdir(resSavePath)
@@ -234,7 +233,7 @@ end
 if saveResAndFigure
     %save the AUF01/V01/ directly, index out the NIRS/ in the end of the
     %data path
-    save([dataPath(1:end-5) subjectID 'NirsStatsTables.mat'],'-regexp','SubjStats*','tablePFC*','tableSrc*');
+    save([dataPath(1:end-5) subjectID 'NirsStatsTables1.mat'],'-regexp','SubjStats*','tablePFC*','tableSrc*');
     DTdata = GetDTDataStructure([dataPath(1:end-5) subjectID 'DTdata.mat']);
     DTdata.statsTables = load([dataPath(1:end-5) subjectID 'NirsStatsTables.mat']);
     save([dataPath(1:end-5) subjectID 'DTdata.mat'],'DTdata');

@@ -1,13 +1,25 @@
 close all; clear all; clc;
-dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V04\';
 saveResAndFigure = false;
-subjectID = 'AUF03V04';
+
+% subjectID = 'AUF01V04';
+% dataPath = split(subjectID,'V');
+% dataPath = ['Y:\Shuqi\NirsAutomaticityStudy\Data\' dataPath{1} '\V' dataPath{2} '\'];
+% saveDir = [dataPath 'Results\Nirs\'];
+% if ~exist(saveDir,'dir')
+%     mkdir(saveDir)
+% end
+
+[dataPath, ~, saveDir, subjectID, ~] = setupDataPath('AUF01', 'V04', 'NIRS', 'Nirs')
+if saveResAndFigure && ~exist(saveDir,'dir')
+    mkdir(saveDir)
+end
 % Find the DTdata data structure, find task orders to populate the DTdata
-[DTdata, DTdataRowNameMap] = GetDTDataStructure([dataPath subjectID 'DTdata.mat']); 
-raw = load([dataPath 'Nirs\' subjectID 'NirsStimulusCleaned.mat']);
+[DTdata, DTdataRowNameMap] = GetDTDataStructure([dataPath(1:end-5) subjectID 'DTdata.mat']); 
+raw = load([dataPath subjectID 'NirsStimDemoCleaned.mat']);
 raw = raw.raw;
 
 %% populate event times, and calculate speed and alphabet rate
+clc;
 for i=1:length(raw)
     figure('units','normalized','outerposition',[0 0 1 1]);
     raw(i).draw
@@ -66,14 +78,10 @@ for rateToPlot = 1:2 %1=walkSpeed, 2= cognitive Perf
     xtickangle(45)
     set(findall(gcf,'-property','FontSize'),'FontSize',19)
     if saveResAndFigure
-        saveDir = [dataPath 'Results\Nirs\'];
-        if ~exist(saveDir,'dir')
-            mkdir(saveDir)
-        end
         saveas(f,[saveDir subjectID saveTitle])
         saveas(f,[saveDir subjectID saveTitle '.png'])
     end
 end
 %% save data
-save([dataPath subjectID 'DTdata.mat'],'DTdata')
+save([dataPath(1:end-5) subjectID 'DTdata.mat'],'DTdata')
 

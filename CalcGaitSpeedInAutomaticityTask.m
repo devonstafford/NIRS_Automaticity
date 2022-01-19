@@ -1,21 +1,23 @@
 %This script needs access to the Y drive data
 close all; clear all; clc;
-dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V04\';
-load([dataPath 'NirsParam\AUF03V04AutoTasktViconRAW.mat']) %load rawExpData from c3d2mat
+% subjectID = 'AUF01V01Retest';
+% dataPath = split(subjectID,'V');
+% dataPath = ['Y:\Shuqi\NirsAutomaticityStudy\Data\' dataPath{1} '\V' dataPath{2} '\'];
+% load([dataPath 'NirsParam\' subjectID 'NirsTaskViconRAW.mat']) %load rawExpData from c3d2mat
+
+[dataPath, ~, saveDir, subjectID, visitNum] = setupDataPath('AUF02', 'V01', 'NirsParam', 'walkDistFigure');
+load([dataPath subjectID 'RAW.mat']) %load rawExpData from c3d2mat
 saveResAndFigure = true;
-subjectID = 'AUF03V04';
 
 %% Find or create the DTdata data structure, find task orders to populate the DTdata
-[DTdata, DTdataRowNameMap] = GetDTDataStructure([dataPath subjectID 'DTdata.mat']); %if exists one load it TODO
+[DTdata, DTdataRowNameMap] = GetDTDataStructure([dataPath(1:end-10) subjectID 'DTdata.mat']); %if exists one load it TODO
 
-userID = split(subjectID,'V');
-visitNum = str2num(userID{2});
 if visitNum == 4
     visitNum = 2;
 end
-userID = str2num(userID{1}(end-1:end));
 scriptDir = fileparts(matlab.desktop.editor.getActiveFilename);
-load([scriptDir '/Data/SubjectTaskAlphabetRandomizationOrder.mat'])
+load([scriptDir '/Data/SubjectTaskAlphabetRandomizationOrderRetest.mat'])
+userID = str2num(subjectID(4:5)); %after AUF
 taskOrder = taskOrders(userID, :);
 alphabet = alphabetOrder(userID,visitNum);
 
@@ -26,7 +28,7 @@ else %B
 end
 
 %%
-trialIDs = [2,4:8];%,4:8];%,11,12,13,14];
+trialIDs = [4];%,4:8];%,11,12,13,14];
 distWalk = nan(length(trialIDs),3); %in mm
 trialIdx = 1;
 for trialID = trialIDs
@@ -37,7 +39,7 @@ for trialID = trialIDs
     hipX = nanmean([rhipx, lhipx],2);
     hipY = nanmean([rhipy, lhipy],2);
 
-    %% Plot x and y hip positions
+    % Plot x and y hip positions
     f1 = figure('units','normalized','outerposition',[0 0 1 1]); 
     plot(hipX)
     hold on;
@@ -80,9 +82,9 @@ for trialID = trialIDs
         warning('The index found is incorrect. Double check to fix it')
     end
     %manual fixes
-%     if trialID == 7 %ignore the last one
-%         startWalkingFrame(end) = [] %ignore the last one
-%         stopWalkingFrame(end) = []
+    if trialID == 4 %ignore the last one
+        startWalkingFrame(end) = [] %ignore the last one
+        stopWalkingFrame(end-1) = []
 % %     elseif trialID == 11
 %         startWalkingFrame(end) = []
 %         stopWalkingFrame(end-1) = []
@@ -92,7 +94,7 @@ for trialID = trialIDs
 %     elseif trialID == 14
 %         startWalkingFrame(end-1:end) = []
 %         stopWalkingFrame(end-1:end) = []
-%     end
+    end
 
     %plot on top of the x and y mark figure, the start/stop frames
     yrange = ylim;
@@ -122,7 +124,7 @@ for trialID = trialIDs
     title(['Trial ' num2str(trialIDs(trialIdx))])
     
     if saveResAndFigure
-        saveDir = [dataPath 'walkDistFigure\'];
+%         saveDir = [dataPath 'walkDistFigure\'];
         if ~exist(saveDir,'dir')
             mkdir(saveDir)
         end
@@ -135,7 +137,7 @@ for trialID = trialIDs
         distWalk(trialIdx,idx) = nansum(dist(startWalkingFrame(idx):stopWalkingFrame(idx)))/1000; %in meters
     end
     
-    %% Populate the walk distance into corresponding task and trial in the DTdata table.
+    % Populate the walk distance into corresponding task and trial in the DTdata table.
     %1 = stand and alphabet A, 2 = walk and alphabet A, 3 = walk, 4 = stand and
     %alphabet 3 A, 5 = walk and alphabet 3 A; 6 = stand and alphabet B, 7 = walk and alphabet B, 8 = stand and
     %alphabet 3B, 9 = walk and alphabet 3B
@@ -157,8 +159,8 @@ distWalk
 % comment = 'Removed start walk time at index 3 and 5, end walk time at index 2 and 5, because there was one frame with no distance in between and in the end there was minor movements';
 
 %% save data
-save([dataPath subjectID 'DistanceWalked'], 'distWalk')
-save([dataPath subjectID 'DTdata.mat'],'DTdata')
+save([dataPath(1:end-10) subjectID 'DistanceWalked'], 'distWalk')
+save([dataPath(1:end-10) subjectID 'DTdata.mat'],'DTdata')
 %%
 % mask = ydiff > 1; %both x and y continuously increase (turning to start)
 % thresholdFrames = 150;

@@ -2,19 +2,26 @@
 close all; clear all; clc;
 
 %provide the folder where the .oxy4 files are located
-dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V04\NIRS\';
+% dataPath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF01\V04\NIRS\';
 % dataPath = 'C:\Users\shl187\OneDrive - University of Pittsburgh\SML\Projects\fNIR Project\Code_NIRS_Automaticity\Data\AUF01\V01NirsOxy5';
-subjectID = 'AUF03V04';
-testDate = datetime('17-Nov-2021'); %inputdlg('Test date(DD-Mon-YYYY, e.g., 01-Jan-2001):');
-testerName = 'SL/DS';%inputdlg('Tester Name (Initials):');
+% subjectID = 'AUF01V01';
 
+[dataPath, ~, ~, subjectID, ~] = setupDataPath('AUF02', 'V01', 'NIRS', '')
+testDate = datetime('12-Jan-2022'); %inputdlg('Test date(DD-Mon-YYYY, e.g., 01-Jan-2001):');
+testerName = 'SL';%inputdlg('Tester Name (Initials):');
+startingAlphabet = 'B';
 %% Load data, needs the Oxysoft as a COM-interface
 raw = nirs.io.loadDirectory(dataPath, {'subject'})
 
 %% index out the valid trials
-validIdx = 2:8;%change index here, corresponding measurement index
-rawOriginal2 = raw;
+validIdx = [5,8:13];%change index here, corresponding measurement index
+rawFull = raw;
 raw = raw(validIdx);
+FileValidPaths = cell(1,length(raw));
+for i = 1:length(raw)
+    FileValidPaths{i} = raw(i).description;
+end
+FileValidPaths'
 %% plot to visualize the data and stimulus encoding
 f = figure('units','normalized','outerposition',[0 0 1 1]);
 cols = 3;
@@ -22,6 +29,7 @@ rows = ceil(length(raw)/cols);
 for i=1:length(raw)
     subplot(rows,cols,i)
     raw(i).draw
+    raw(i).description
     raw(i).stimulus.keys
     if i ~= length(raw)
         s=findobj('type','legend');
@@ -58,7 +66,7 @@ durationCheck = nan(length(raw),10);
 for trialIdx = 1:length(raw) 
     %2nd argument: starting alphabet
     %last argument: how many iterations per measurement file, usually 1, previous pilot data = 6.
-    raw(trialIdx) = addStimulusDuration(rawOriginal(trialIdx), 'B', 1);
+    raw(trialIdx) = addStimulusDuration(rawOriginal(trialIdx), startingAlphabet, 1);
     subplot(rows,cols,pltIdx)
     raw(trialIdx).draw
     for i = 1:10
@@ -71,7 +79,7 @@ for trialIdx = 1:length(raw)
     end
 end
 durationCheck
-% saveas(f,[dataPath subjectID 'NirsStimulusCleanedFig'])
+saveas(f,[dataPath subjectID 'NirsStimulusCleanedFig'])
 
 %% populate demographics data
 for i = 1:length(raw)

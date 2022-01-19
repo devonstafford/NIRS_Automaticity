@@ -26,7 +26,7 @@ end
 %% Generate page sequences to use at printers
 close all; clear all;
 clc
-load('C:\Users\SHL187\OneDrive - University of Pittsburgh\SML\Projects\fNIR Project\Code_NIRS_Automaticity\Data\SubjectTaskAlphabetRandomizationOrder.mat')
+load('C:\Users\SHL187\OneDrive - University of Pittsburgh\SML\Projects\fNIR Project\Code_NIRS_Automaticity\Data\SubjectTaskAlphabetRandomizationOrderRetest.mat')
 userID = input('Input user ID (number part only)');
 visitNumber = input('Visit number: (1 or 4)');
 pageOrder = taskOrders(userID, :);

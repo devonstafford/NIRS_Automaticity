@@ -1,76 +1,77 @@
-adaptDataV2=load('Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V02\AUF03V02params.mat');
-adaptDataV2 = adaptDataV2.adaptData;
-adaptDataV2.plotAvgTimeCourse(adaptDataV2,'netContributionNorm2');
-adaptDataV2.plotAvgTimeCourse(adaptDataV2,'singleStanceSpeedFastAbsANK');
-
-adaptDataV3=load('Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V03\AUF03V03params.mat');
-adaptDataV3 = adaptDataV3.adaptData;
-adaptDataV3.plotAvgTimeCourse(adaptDataV3,'netContributionNorm2')
-
 %%
 % temp = rand(10,3);
 % for i = 1:10
 %     fprintf('[%d,%d,%d];\n',temp(i,1),temp(i,2),temp(i,3))
 % end
-%% Add conditions (should only need to do it once)
+%% Set up load and save path
 close all; clear all; clc;
-datapath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03\V04\AUF03V04';
-adaptData=load([datapath 'params.mat']);
-adaptData = adaptData.adaptData;
-adaptData.plotAvgTimeCourse(adaptData,'netContributionNorm2')
-
-rawAdaptData = adaptData;
-vNum = split(datapath,'\');
-vNum = vNum{6};
-if contains(vNum, {'2','4'})
+needSplitConditions = false; %only need to split it once
+[datapath, ~, resDir, subjectID, vNum] = setupDataPath('AUF03', 'V04', '', 'Kinematics')
+if vNum == 2 || vNum == 4
     intervention = false;
-else
+elseif vNum == 3
     intervention = true;
 end
 
-if intervention
-    adaptData = AddingConditionsNirs(adaptData, 'MidAdaptation1', 'Adaptation1', true, 'First switching block of adaptation');
-    adaptData = AddingConditionsNirs(adaptData, 'Adaptation1', 'Post1', false, 'First switching block of post adaptation');
-    oldNames = {'MidAdaptation1'};
-    newNames = {'TMbase'};
-    for blocks = [2,4] %[2,3,4]
-        blocks
-        adaptData = AddingConditionsNirs(adaptData, ['SwitchAdaptation' num2str(blocks)], ['Adaptation' num2str(blocks)], true, ['No.' num2str(blocks) 'switching block of adaptation']);
-        adaptData = AddingConditionsNirs(adaptData, ['Adaptation' num2str(blocks)], ['Post' num2str(blocks)], false, ['No.' num2str(blocks) 'switching block of post-adaptation']);
-        oldNames{end+1} = ['SwitchAdaptation'  num2str(blocks)];
-        newNames{end+1} = ['TMTiedMid'  num2str(blocks)];
+%% special fix for AUF01V03
+% adaptData.data.Data(819,4) = 8
+% adaptData.data.Data(1149:1152,4) = 12
+% adaptData.data.Data(1404:1406,4) = 15
+% adaptData.data.Data(1660:1663,4) = 23
+% adaptData.data.Data(2491:2494,4) = 28
+% adaptData.data.Data(2617:2620,4) = 31
+% v1.plotAvgTimeCourse(v1,{'netContributionNorm2','singleStanceSpeedFastAbsANK','singleStanceSpeedSlowAbsANK'})
+% sum(adaptData.data.Data(:,4) == 7)
+
+%% Add conditions (should only need to do it once)
+if needSplitConditions
+    adaptData=load([datapath subjectID 'OriginalCondNameparams.mat']);
+    adaptData = adaptData.adaptData;
+    adaptData.plotAvgTimeCourse(adaptData,'netContributionNorm2')
+
+    rawAdaptData = adaptData;
+    if intervention
+        adaptData = AddingConditionsNirs(adaptData, 'MidAdaptation1', 'Adaptation1', true, 'First switching block of adaptation');
+        adaptData = AddingConditionsNirs(adaptData, 'Adaptation1', 'Post1', false, 'First switching block of post adaptation');
+        oldNames = {'MidAdaptation1'};
+        newNames = {'TMBase'};
+        for blocks = [2,3,4] %[2,3,4]
+            blocks
+            adaptData = AddingConditionsNirs(adaptData, ['SwitchAdaptation' num2str(blocks)], ['Adaptation' num2str(blocks)], true, ['No.' num2str(blocks) 'switching block of adaptation']);
+            adaptData = AddingConditionsNirs(adaptData, ['Adaptation' num2str(blocks)], ['Post' num2str(blocks)], false, ['No.' num2str(blocks) 'switching block of post-adaptation']);
+            oldNames{end+1} = ['SwitchAdaptation'  num2str(blocks)];
+            newNames{end+1} = ['TMTiedMid'  num2str(blocks)];
+        end
+        adaptData = AddingConditionsNirs(adaptData, 'LastAdaptation' , 'Adaptation5', true, 'No.5 switching block of adaptation');
+        oldNames{end+1} = 'LastAdaptation';
+        newNames{end+1} = 'TMTiedMid5';
+        %TODO: fix this
+        adaptData = AddingConditionsNirs(adaptData, 'PosShort', 'PosShortSplit', true);
+        adaptData = AddingConditionsNirs(adaptData, 'NegShort', 'NegShortSplit', true);
+        oldNames = [oldNames, {'PosShort','NegShort','PosShortSplit','NegShortSplit'}];
+        newNames = [newNames,{'TMTiedMid6','TMTiedMid7','PosShort','NegShort',}];
+        adaptData.plotAvgTimeCourse(adaptData,{'netContributionNorm2','singleStanceSpeedFastAbsANK','singleStanceSpeedSlowAbsANK'})
+        save([datapath 'params.mat'],'adaptData','-v7.3');
+        changeCondName(datapath,oldNames,newNames)
+    else
+        adaptData = AddingConditionsNirs(adaptData, 'TMMidThenAdapt', 'Adaptation', true);
+        adaptData = AddingConditionsNirs(adaptData, 'PosShort', 'PosShortSplit', true);
+        adaptData = AddingConditionsNirs(adaptData, 'NegShort', 'NegShortSplit', true);
+        save([datapath 'params.mat'],'adaptData','-v7.3');
+        changeCondName(datapath,{'TMMidThenAdapt','PosShort','PosShortSplit','NegShort','NegShortSplit'},{'TMBase','TMMid2','PosShort','TMMid3','NegShort'})
     end
-    adaptData = AddingConditionsNirs(adaptData, 'LastAdaptation' , 'Adaptation5', true, 'No.5 switching block of adaptation');
-    oldNames{end+1} = 'LastAdaptation';
-    newNames{end+1} = 'TMTiedMid5';
-    %TODO: fix this
-    adaptData = AddingConditionsNirs(adaptData, 'TMMid2', 'PosShort', true);
-    adaptData = AddingConditionsNirs(adaptData, 'TMMid3', 'NegShort', true);
-    oldNames = [oldNames, {'TMMid2','TMMid3'}]
-    newNames = [newNames,{'TMTiedMid6','TMTiedMid7'}]
-    save([datapath 'params.mat'],'adaptData','-v7.3');
-    changeCondName(datapath,oldNames,newNames)
-else
-    adaptData = AddingConditionsNirs(adaptData, 'TMMidThenAdapt', 'Adaptation', true);
-    adaptData = AddingConditionsNirs(adaptData, 'PosShort', 'PosShortSplit', true);
-    adaptData = AddingConditionsNirs(adaptData, 'NegShort', 'NegShortSplit', true);
-    save([datapath 'params.mat'],'adaptData','-v7.3');
-    changeCondName(datapath,{'TMMidThenAdapt','PosShort','PosShortSplit','NegShort','NegShortSplit'},{'TM base','TMMid2','PosShort','TMMid3','NegShort'})
-
 end
-
 
 %% reload clean data, set up result folder
 close all; clc;
-adaptData = load([datapath 'params.mat']);
+adaptData = load([datapath subjectID 'params.mat']);
 adaptData = adaptData.adaptData;
 adaptDataRaw = adaptData;
-%TODO: split pos and neg short
-resDir = [datapath 'Result\'];
+resDir
 if not(isfolder(resDir))
     mkdir(resDir)
 end
-saveResAndFigure = true;
+saveResAndFigure = false;
 
 %% remove bad strides
 adaptData.plotAvgTimeCourse(adaptData,{'netContributionNorm2','singleStanceSpeedFastAbsANK','singleStanceSpeedSlowAbsANK'})
@@ -86,6 +87,7 @@ title('After removing bias')
 adaptData.plotAvgTimeCourse(adaptData,{'netContributionNorm2'})
 
 %%
+close all;
 params = {'spatialContributionNorm2','stepTimeContributionNorm2','velocityContributionNorm2','netContributionNorm2'}
 % params = {'spatialContributionNorm2','stepTimeContributionNorm2','velocityContributionNorm2','netContributionNorm2',...
 %     'spatialContribution','stepTimeContribution','velContribution'};
@@ -104,7 +106,7 @@ end
 ss_strides = 40; %ignore last 5
 ignoreLast = 5;
 if intervention
-    switchBlocks = [1 2 4 5];%1:5;
+    switchBlocks = 1:5;
     lateConditions = cell(1,length(switchBlocks));
     earlyConditions = cell(1,length(switchBlocks));
     idx = 1;
@@ -136,7 +138,7 @@ for p = params
 end
 
 %% plot ss data
-f = figure();
+f = figure('units','normalized','outerposition',[0 0 1 1]);
 for i =1:4
     subplot(2,2,i)
     bar(ssData(:,i))
@@ -248,44 +250,43 @@ if saveResAndFigure
     saveas(f1, [resDir 'PostAE.fig'])
 end
 %% plot adaptation rate
-clc;
+clc; 
 beginIndex = nan(1,length(lateConditions));
 endIndx = nan(1,length(lateConditions));
 for pIdx = 1:length(params)
     removeBias = true;
     fig = adaptData.plotAvgTimeCourse(adaptData,...
         params(pIdx),...
-        adaptData.metaData.conditionName,5,...
+        adaptData.metaData.conditionName,1,...
         [],[],[],[],0,removeBias);
     hold on;
     
     for cIdx = 1:length(lateConditions)
         if pIdx == 1
-%             trialNum = adaptData.metaData.trialsInCondition{strcmp(adaptData.metaData.conditionName,lateConditions{cIdx})};
-%             columnIdxForTrialNum=find(compareListsNested({'Trial'},adaptData.data.labels));
-
-            beginIndex(cIdx) = input(['What is the index of 1st point in ' lateConditions{cIdx} ' :']);
-            endIndx(cIdx) = input(['What is the index of last point in ' lateConditions{cIdx} ' :']);
+            trialNum = adaptData.metaData.trialsInCondition{strcmp(adaptData.metaData.conditionName,lateConditions{cIdx})};
+            columnIdxForTrialNum=find(compareListsNested({'Trial'},adaptData.data.labels));
+            beginIndexList = find(adaptData.data.Data(:,columnIdxForTrialNum) == trialNum(1));
+            beginIndex(cIdx) = beginIndexList(1);
+            endIndxList = find(adaptData.data.Data(:,columnIdxForTrialNum) == trialNum(end));
+            endIndx(cIdx) = endIndxList(end);
         end
-%         adaBeginningIdex = 509;
-        % FIXME: this is not good. (eyeballing)
         xline = xlim;
-        xline = xline(1):beginIndex(cIdx) +stride2SS(cIdx, pIdx);
+        xline = xline(1):beginIndex(cIdx)  +stride2SS(cIdx, pIdx);
         yline = ylim;
         yline = yline(1):0.005:ssThreshold(cIdx, pIdx);
         
         plot(xline, ssThreshold(cIdx, pIdx) * ones(1,length(xline)),'r--','LineWidth',2,'DisplayName','0.632*SS')
-        plot((beginIndex(cIdx) +stride2SS(cIdx,pIdx))* ones(1,length(yline)), yline,'k--','LineWidth',2,'DisplayName',sprintf('AdaptRate:%d',stride2SS(cIdx,pIdx)))
+        plot((beginIndex(cIdx) +stride2SS(cIdx,pIdx))* ones(1,length(yline)), yline,'r--','LineWidth',2,'DisplayName',sprintf('AdaptRate:%d',stride2SS(cIdx,pIdx)))
         xline = xlim;
-        xline = xline(1):endIndx(cIdx);
-        plot(xline, ssData(cIdx,pIdx)* ones(1,length(xline)),'r-.','LineWidth',2,'DisplayName','SS')
+        xline = xline(1):endIndx(cIdx) + 10; %offset by 10 for a little extra buffer for bad strides, etc
+        plot(xline, ssData(cIdx,pIdx)* ones(1,length(xline)),'k-.','LineWidth',2,'DisplayName','SS')
     end
-    title(['Smoothed ' params{pIdx} ' with Adaptation Rate (estimated location)'])
+    title(['Smoothed ' params{pIdx} ' with Adaptation Rate'])
     legend('Location','northeastoutside')
     set(gcf,'Units','Normalized','OuterPosition',[0.1 0.1 0.9 0.9])
     if saveResAndFigure
-        saveas(fig, [resDir 'AdaptationRate' params{pIdx} '.png'])
         saveas(fig, [resDir 'AdaptationRate' params{pIdx} '.fig'])
+        saveas(fig, [resDir 'AdaptationRate' params{pIdx} '.png'])
     end
 end
 
@@ -331,66 +332,3 @@ end
 % params = {'spatialContributionNorm2','stepTimeContributionNorm2','velocityContributionNorm2','netContributionNorm2'};
 % results=getResultsSMART(DumbTester7,params,groups,0);
 
-%% Compare V04-V01
-close all; clear all; clc;
-datapath = 'Y:\Shuqi\NirsAutomaticityStudy\Data\AUF03';
-adaptDataPre=load([datapath '\V02\AUF03V02params.mat']);
-adaptDataPost=load([datapath '\V04\AUF03V04params.mat']);
-outcomePre=load([datapath '\V02\AUF03V02Result\OutcomeMeasures.mat']);
-outcomePost=load([datapath '\V04\AUF03V04Result\OutcomeMeasures.mat']);
-outcomeTraining=load([datapath '\V03\AUF03V03Result\OutcomeMeasures.mat']);
-outcomePre = outcomePre.outcomeMeasures;
-outcomePost = outcomePost.outcomeMeasures;
-outcomeTraining = outcomeTraining.outcomeMeasures;
-
-%OGPost = switching
-close all
-vars = {'OGPost','TMPost','AdaptationRate','SS'};
-for var = vars
-    f = figure('units','normalized','outerposition',[0 0 1 1]);%('Position', get(0, 'Screensize'));
-    for col = 1:4
-        subplot(2,2,col);
-        bar(1, outcomePre{var{1},col});
-        hold on;
-%         bar(2, outcomeTraining{var{1},col});
-        bar(2, outcomePost{var{1},col});
-        title(outcomePre.Properties.VariableNames{col})
-    end
-    legend({'Pre','Post'})
-    sgtitle(var{1})
-end
-
-% %OGPost = switching
-% f = figure('Position', get(0, 'Screensize'));
-% for col = 1:4
-%     subplot(2,2,col);
-%     bar(1, outcomePre{'OGPost',col});
-%     hold on;
-%     bar(2, outcomePost{'OGPost',col});
-%     bar(3, outcomePost{'OGPost',col});
-%     bar(4, outcomePost{'OGPost',col});
-%     bar(5, outcomePost{'OGPost',col});
-%     bar(6, outcomePost{'OGPost',col});
-%     title(outcomePre.Properties.VariableNames{col})
-% end
-% legend({'Pre','Post'})
-
-% dataToPlot = {deltaAdapt, ssData, stride2SS};
-% titles = {'Delta Adapt (SS - earlyAdapt)', 'Steady States (unbiased)','Adaptation Rate (strides to steady state)'};
-% saveTitle = {'DeltaAdapt','SS','AdaptationRateBar'};
-% for dIdx = 1:length(dataToPlot)
-%     data = dataToPlot{dIdx};
-%     f = figure('Position', get(0, 'Screensize'));
-%     for i =1:4
-%         subplot(2,2,i)
-%         bar(data(:,i))
-%         title(params{i})
-%         xticklabels(lateConditions)
-%     end
-%     sgtitle(titles{dIdx}); 
-%     
-%     if saveResAndFigure
-%         saveas(f, [resDir saveTitle{dIdx} '.png'])
-%         saveas(f, [resDir saveTitle{dIdx} '.fig'])
-%     end
-% end
