@@ -5,8 +5,8 @@
 % end
 %% Set up load and save path
 close all; clear all; clc;
-needSplitConditions = false; %only need to split it once
-[datapath, ~, resDir, subjectID, vNum] = setupDataPath('AUF03', 'V04', '', 'Kinematics')
+needSplitConditions = true; %only need to split it once
+[datapath, ~, resDir, subjectID, vNum] = setupDataPath('AUF02', 'V02', '', 'Kinematics')
 if vNum == 2 || vNum == 4
     intervention = false;
 elseif vNum == 3
@@ -57,8 +57,10 @@ if needSplitConditions
         adaptData = AddingConditionsNirs(adaptData, 'TMMidThenAdapt', 'Adaptation', true);
         adaptData = AddingConditionsNirs(adaptData, 'PosShort', 'PosShortSplit', true);
         adaptData = AddingConditionsNirs(adaptData, 'NegShort', 'NegShortSplit', true);
-        save([datapath 'params.mat'],'adaptData','-v7.3');
-        changeCondName(datapath,{'TMMidThenAdapt','PosShort','PosShortSplit','NegShort','NegShortSplit'},{'TMBase','TMMid2','PosShort','TMMid3','NegShort'})
+%         adaptData.plotAvgTimeCourse(adaptData,{'netContributionNorm2','singleStanceSpeedFastAbsANK','singleStanceSpeedSlowAbsANK'})
+        title('After Adding Conditions')
+        save([datapath subjectID 'params.mat'],'adaptData','-v7.3');
+        changeCondName([datapath subjectID],{'TMMidThenAdapt','PosShort','PosShortSplit','NegShort','NegShortSplit'},{'TMBase','TMMid2','PosShort','TMMid3','NegShort'})
     end
 end
 
@@ -71,7 +73,7 @@ resDir
 if not(isfolder(resDir))
     mkdir(resDir)
 end
-saveResAndFigure = false;
+saveResAndFigure = true;
 
 %% remove bad strides
 adaptData.plotAvgTimeCourse(adaptData,{'netContributionNorm2','singleStanceSpeedFastAbsANK','singleStanceSpeedSlowAbsANK'})

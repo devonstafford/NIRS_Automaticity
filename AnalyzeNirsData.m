@@ -14,7 +14,7 @@ saveResAndFigure = true;
 %     resSavePath = replace(resSavePath,"\","/");
 % end
 
-[dataPath, ~, resSavePath, subjectID, ~] = setupDataPath('AUF02', 'V01', 'NIRS', 'NIRS');
+[dataPath, ~, resSavePath, subjectID, ~] = setupDataPath('AUF03', 'V01', 'NIRS', 'NIRSV1');
 
 % raw = nirs.core.Data.empty;
 % raw(2) = data.raw; %can simply add in this way
@@ -22,7 +22,7 @@ saveResAndFigure = true;
 data = load([dataPath subjectID 'NirsStimDemoCleaned.mat']);
 raw = data.raw;
 rawFull = raw;
-validTrialIdx = [2,4:7];
+validTrialIdx = [2:7];
 fprintf('\nIgnoring practice trial. Using index: ')
 validTrialIdx
 raw = raw(validTrialIdx); %ignore the practice trial
@@ -52,38 +52,42 @@ j=nirs.modules.OpticalDensity(j);
 j=nirs.modules.Resample(j);
 j=nirs.modules.BeerLambertLaw(j);
 Hb=j.run(raw);
+HbUntrimed = Hb;
 
-%%
+%% trim data
+j = nirs.modules.TrimBaseline;
+j.preBaseline = 2;
+j.postBaseline = 2;
+% j.resetTime = true;
+Hb = j.run(HbUntrimed);
+
+%% plot trimmed data
 close all;
 for i=1:length(Hb)
     f2 = figure('units','normalized','outerposition',[0 0 1 1]);
-    Hb(i).draw
+    subplot(3,1,1);
+    HbUntrimed(i).draw
     title(['Hbo Iteration ' num2str(i)])
+    subplot(3,1,2);
+    HbUntrimed(i).draw
+    ylim([-750 500])
+    legend('hide') %only need legend in top subplot
+    title(['Zoomed In HBo Iteration ' num2str(i)])
+    subplot(3,1,3);
+    Hb(i).draw
+    title(['Trimmed Hbo Iteration ' num2str(i)])
+    legend('hide')
     fprintf('\nIteration %d Data range: %d',i,range(Hb(i).data,'all'))
     if saveResAndFigure
-        saveas(f2, [resSavePath  subjectID 'HboSignalIteration' num2str(i) '.png'])
-        saveas(f2, [resSavePath  subjectID 'HboSignalIteration' num2str(i) '.fig'])
-    end
-end
-%% figure is small bc of the large spike of signal at the beginning
-% zoom in the figures and save a snapshot in png
-figHandles = findobj('Type', 'figure'); %get all open figures
-s=findobj('type','legend');
-delete(s);
-for i=1:numel(figHandles)
-    ax=findobj(figHandles(i),'Type','axes');
-    for axIdx=1:numel(ax)
-        ylim(ax(axIdx), [-700 500])
-    end
-    if saveResAndFigure
-        saveas(figHandles(i), [resSavePath subjectID 'HboSignalIteration' ax.Title.String(end) 'ZoomedIn.png'])
+        saveas(f2, [resSavePath  subjectID 'HboTrimedSignalIteration' num2str(i) '.png'])
+        saveas(f2, [resSavePath  subjectID 'HboTrimedSignalIteration' num2str(i) '.fig'])
     end
 end
 %% GLM
-Hb = j.run(raw);
 j=nirs.modules.GLM;
 j.goforit=true;
 SubjStats=j.run(Hb); %A ChannelStats object, with variables: stimulus x 2(hbo or hbr) x 8 (sources)
+
 
 %% compare each active condition against baseline + compare walk with alphabet vs walk alone
 SubjStatsVsBaselinePerTrial=SubjStats.ttest({'walk-Rest_Before_Walk'
@@ -132,6 +136,27 @@ tablePFC_DTvsSTPerTrial=nirs.util.roiAverage(SubjStatsDTVsSTPerTrial,ROIc,{'PFC'
 % sigIndexPFC_DTvsST = find(tablePFC_DTvsSTPerTrial.q <= 0.05);
 % sigpairsPFC_DTvsST = tablePFC_DTvsSTPerTrial(sigIndexPFC_DTvsST,:);
 
+%% exclude bad task
+if contains(dataPath,'AUF02\V01')
+    for i=1:height(SubjStats(2).variables)
+      if strcmp(SubjStats(2).variables.cond(i), {'standAndAlphabet3'})
+          SubjStats(2).variables{i, 4}={''}; %make it empty
+      end
+    end 
+    
+    for i=1:height(SubjStatsVsBaselinePerTrial(2).variables)
+      if strcmp(SubjStatsVsBaselinePerTrial(2).variables.cond(i), {'StandAndAlphabet3RC'})
+          SubjStatsVsBaselinePerTrial(2).variables{i, 4}={''}; %make it empty
+      end
+    end 
+    
+    for i=1:height(SubjStatsDTVsSTPerTrial(2).variables)
+      if strcmp(SubjStatsDTVsSTPerTrial(2).variables.cond(i), {'WalkAlphabet3VsStandAlphabet3'})
+          SubjStatsDTVsSTPerTrial(2).variables{i, 4}={''}; %make it empty
+      end
+    end 
+end
+
 %% Output channel-wise SubjStats per subject, pull all repetitions together, needs demographics data to know what trials to group together
 j=nirs.modules.SubjLevelStats;
 SubjStatsVsBaseline=j.run(SubjStatsVsBaselinePerTrial);
@@ -175,6 +200,8 @@ tablePFC_DTvsST=nirs.util.roiAverage(SubjStatsDTVsST,ROIc,{'PFC'});
 % figure from ROIstats directly is off, manually do it
 % ROIstats.draw('tstat',[],'q < 0.05') %plot q<0.05 with solid and others with dashed line
 tableToPlot = {tableSrc_VsBase, tableSrc_DTvsST, tablePFC_VsBase, tablePFC_DTvsST};
+condsOrdered = {{'StandAndAlphabet2RC';'StandAndAlphabet3RC';'WalkRestCorrected'; 'WalkAndAlphabet2RC';'WalkAndAlphabet3RC'},...
+    {'WalkAlphabet2VsWalk';'WalkAlphabet2VsStandAlphabet2';'WalkAlphabet3VsWalk';'WalkAlphabet3VsStandAlphabet3'}};
 gapBtwGroups = 1; %figure setting, gaps between groups of bar plots
 close all;
 for tblIdx = 1:length(tableToPlot) %first 2 sources x hbr and hbo, then 1PFC x 2 (hbr and hbo)
@@ -185,9 +212,11 @@ for tblIdx = 1:length(tableToPlot) %first 2 sources x hbr and hbo, then 1PFC x 2
         if tblIdx == 1
             titleId = 'By Source (Compared to Rest Baseline)';
             saveNameId = 'VsBase_BySource';
+            conds = condsOrdered{1};
         else
             titleId = 'By Source (DT vs ST)';
             saveNameId = 'DTvsST_BySource';
+            conds = condsOrdered{2};
         end
     else
         groups = 2;
@@ -195,15 +224,16 @@ for tblIdx = 1:length(tableToPlot) %first 2 sources x hbr and hbo, then 1PFC x 2
         if tblIdx == 3
             titleId = 'PFC (Compared to Rest Baseline)';
             saveNameId = 'VsBase_PFC';
+            conds = condsOrdered{1};
         else
             titleId = 'PFC (DT vs ST)';
             saveNameId = 'DTvsST_PFC';
+            conds = condsOrdered{2};
         end
     end
     tableByROI = tableToPlot{tblIdx};
     f = figure('units','normalized','outerposition',[0 0 1 1]);
     hold on;
-    conds = unique(tableByROI.Contrast);
     sigMarkOffset = range(tableByROI.T) * 0.03;
     for condIdx = 1:length(conds)
         dataToPlot = tableByROI(strcmp(tableByROI.Contrast,conds{condIdx}),:);
@@ -315,3 +345,121 @@ end
 % 
 % %% Load GUI
 % nirs.viz.nirsviewer;
+
+%%
+% close all;
+% for i=1:length(Hb)
+%     f2 = figure('units','normalized','outerposition',[0 0 1 1]);
+%     Hb(i).draw
+%     title(['Hbo Iteration ' num2str(i)])
+%     fprintf('\nIteration %d Data range: %d',i,range(Hb(i).data,'all'))
+%     if saveResAndFigure
+%         saveas(f2, [resSavePath  subjectID 'HboSignalIteration' num2str(i) '.png'])
+%         saveas(f2, [resSavePath  subjectID 'HboSignalIteration' num2str(i) '.fig'])
+%     end
+% end
+% figure is small bc of the large spike of signal at the beginning
+% zoom in the figures and save a snapshot in png
+% figHandles = findobj('Type', 'figure'); %get all open figures
+% s=findobj('type','legend');
+% delete(s);
+% for i=1:numel(figHandles)
+%     ax=findobj(figHandles(i),'Type','axes');
+%     for axIdx=1:numel(ax)
+%         ylim(ax(axIdx), [-750 500])
+%     end
+%     if saveResAndFigure
+%         saveas(figHandles(i), [resSavePath subjectID 'HboSignalIteration' ax.Title.String(end) 'ZoomedIn.png'])
+%     end
+% end
+
+%% shorten initial rest for AUF02
+% event = raw(2).stimulus.values{2}
+% event.dur = event.dur - 4.5;
+% event.onset = event.onset + 4.5;
+% event
+% raw(2).stimulus(raw(2).stimulus.keys{2}) = event;
+% 
+% %
+% event = raw(4).stimulus('Rest_Before_Walk')
+% offset = 6.5;
+% event.dur = event.dur - offset;
+% event.onset = event.onset + offset;
+% event
+% raw(4).stimulus(event.name) = event;
+% 
+% %
+% event = raw(5).stimulus('Rest_Before_Walk')
+% offset = 6;
+% event.dur = event.dur - offset;
+% event.onset = event.onset + offset;
+% event
+% raw(5).stimulus(event.name) = event;
+% 
+% %
+% event = raw(6).stimulus('Rest_Before_Walk_And_Alphabet')
+% offset = 9.9;
+% event.dur = event.dur - offset;
+% event.onset = event.onset + offset;
+% event
+% raw(6).stimulus(event.name) = event;
+% 
+% %
+% event = raw(7).stimulus('Rest_Before_Walk')
+% offset = 7.9;
+% event.dur = event.dur - offset;
+% event.onset = event.onset + offset;
+% event
+% raw(7).stimulus(event.name) = event;
+
+% rename the wrong trial <- DN work
+% inCorrectTrial = raw(3).stimulus;
+% renamedTrial = Dictionary();
+% for entry = 1:length(inCorrectTrial.keys)
+%     if strcmp(inCorrectTrial.keys{entry}, 'Rest_Before_Stand_And_Alphabet_3')
+%         renamedTrial('IncorrectRest_Before_Stand_And_Alphabet_3_Rest_Before_Walk_And_Alphabet_3') = inCorrectTrial.values{entry};
+%     elseif strcmp(inCorrectTrial.keys{entry}, 'standAndAlphabet3')
+%         renamedTrial('IncorrectstandAndAlphabet3_walkAndAlphabet3') = inCorrectTrial.values{entry};
+%     else
+%         renamedTrial(inCorrectTrial.keys{entry}) = inCorrectTrial.values{entry};
+%     end
+% end
+% raw(3).stimulus= renamedTrial;
+
+% % % AUF01RetestV01
+% event = raw(6).stimulus('Rest_Before_Walk')
+% offset = 10 - event.onset;
+% event.dur = event.dur - offset;
+% event.onset = event.onset + offset;
+% event
+% raw(6).stimulus(event.name) = event;
+% % 
+% event = raw(7).stimulus('Rest_Before_Walk_And_Alphabet')
+% offset = 10 - event.onset;
+% event.dur = event.dur - offset;
+% event.onset = event.onset + offset;
+% event
+% raw(7).stimulus(event.name) = event;
+% %
+% event = raw(2).stimulus('Rest_Before_Walk')
+% offset = 10 - event.onset;
+% event.dur = event.dur - offset;
+% event.onset = event.onset + offset;
+% event
+% raw(2).stimulus(event.name) = event;
+% %
+% event = raw(3).stimulus('Rest_Before_Stand_And_Alphabet_3')
+% offset = 10 - event.onset;
+% event.dur = event.dur - offset;
+% event.onset = event.onset + offset;
+% event
+% raw(3).stimulus(event.name) = event;
+%
+% %AUF03V03
+% trialIdx=5;
+% event = raw(trialIdx).stimulus('Rest_Before_Walk')
+% offset = 10 - event.onset;
+% event.dur = event.dur - offset;
+% event.onset = event.onset + offset;
+% event
+% raw(trialIdx).stimulus(event.name) = event;

@@ -9,7 +9,7 @@ function in= AddingConditionsNirs(in, oldConditionName, newConditions, splitBegi
         newDecription = 'Beginning of adaptation';
     end
   
-%     in.plotAvgTimeCourse(in,{'netContributionNorm2','singleStanceSpeedFastAbsANK','singleStanceSpeedSlowAbsANK'})
+    in.plotAvgTimeCourse(in,{'netContributionNorm2','singleStanceSpeedFastAbsANK','singleStanceSpeedSlowAbsANK'})
     title('Before Changing Conditions');
     
     % find the index for the label singleStanceSpeedFastAbsANK
@@ -25,8 +25,8 @@ function in= AddingConditionsNirs(in, oldConditionName, newConditions, splitBegi
 
     % find the index with speed difference or speed at 1 but also within the
     % current condition of interes
-    idxSplit=find(abs(difference)>200 & in.data.Data(:,columnIdxForTrialNum) == trialNum);
-    diffMask = (abs(difference)>200 & in.data.Data(:,columnIdxForTrialNum) == trialNum)'; %find all cases where diff in speed > 200
+    idxSplit=find(abs(difference)>300 & in.data.Data(:,columnIdxForTrialNum) == trialNum);
+    diffMask = (abs(difference)>300 & in.data.Data(:,columnIdxForTrialNum) == trialNum)'; %find all cases where diff in speed > 200
     thresholdStrides = 4; %if happens continuously for 4 strides: speed changed instead of noise in speed
     thresholdFramesMask = ones(1, thresholdStrides);
     % pad 0 to diffMask in case started difference at frame 1, the 2nd argument is the pattern
@@ -35,7 +35,7 @@ function in= AddingConditionsNirs(in, oldConditionName, newConditions, splitBegi
     if splitBeginOrEnd
 %         idxSplit = idxSplit(1);
         idxSplit = strfind([0,diffMask],[0,thresholdFramesMask]); %get the first stride that speeds changed
-        idxSplit = idxSplit - thresholdStrides; 
+%         idxSplit = idxSplit - thresholdStrides; 
     else
 %         idxSplit = idxSplit(end)+1;
         idxSplit = strfind([diffMask,0],[thresholdFramesMask,0]); %get the first stride where 4 stride later speed changed
@@ -96,6 +96,6 @@ function in= AddingConditionsNirs(in, oldConditionName, newConditions, splitBegi
 %         in.data.Data(idxSplit,columnIdxForTrialNum)=currMaxTrial+1;
     end
     
-%     in.plotAvgTimeCourse(in,{'netContributionNorm2','singleStanceSpeedFastAbsANK','singleStanceSpeedSlowAbsANK'})
-%     title('After Adding Conditions')
+    in.plotAvgTimeCourse(in,{'netContributionNorm2','singleStanceSpeedFastAbsANK','singleStanceSpeedSlowAbsANK'})
+    title('After Adding Conditions')
 end 

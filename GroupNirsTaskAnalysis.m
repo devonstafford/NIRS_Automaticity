@@ -1,12 +1,16 @@
 close all; clc; clear all;
 saveResAndFigure = true;
-saveDir = ['/Volumes/Research/Shuqi/NirsAutomaticityStudy/Data/GroupResults/Group2Sub/Nirs/'];
-visitNum = 'V04';
-subjectIDs = {'AUF01','AUF03'};
-saveDir = [saveDir visitNum]
+saveDir = ['/Volumes/Research/Shuqi/NirsAutomaticityStudy/Data/GroupResults/Group4Sub/Nirs/'];
+visitNum = 'V01';
+subjectIDs = {'AUF01','AUF03','AUF02','AUF04'};
+saveDir = [saveDir visitNum '/']
 DTdataPaths = {};
 for sub = subjectIDs
-    DTdataPaths{end+1} = ['/Volumes/Research/Shuqi/NirsAutomaticityStudy/Data/' sub{1} '/' visitNum '/' sub{1} visitNum 'DTdata.mat'];
+    if strcmp(sub{1},'AUF01') && strcmp(visitNum,'V01')
+        DTdataPaths{end+1} = ['/Volumes/Research/Shuqi/NirsAutomaticityStudy/Data/' sub{1} '/' visitNum 'Retest/' sub{1} visitNum 'RetestDTdata.mat'];
+    else
+        DTdataPaths{end+1} = ['/Volumes/Research/Shuqi/NirsAutomaticityStudy/Data/' sub{1} '/' visitNum '/' sub{1} visitNum 'DTdata.mat'];
+    end
 end
 
 scriptDir = fileparts(matlab.desktop.editor.getActiveFilename); 
@@ -86,6 +90,8 @@ end
 %%
 % tableToPlot = {tableSrc_VsBase, tableSrc_DTvsST, tablePFC_VsBase, tablePFC_DTvsST};
 tableToPlot = {[], [], 'tablePFC_VsBase', 'tablePFC_DTvsST'};
+condsOrdered = {{'StandAndAlphabet2RC';'StandAndAlphabet3RC';'WalkRestCorrected'; 'WalkAndAlphabet2RC';'WalkAndAlphabet3RC'},...
+    {'WalkAlphabet2VsWalk';'WalkAlphabet2VsStandAlphabet2';'WalkAlphabet3VsWalk';'WalkAlphabet3VsStandAlphabet3'}};
 gapBtwGroups = 1; %figure setting, gaps between groups of bar plots
 close all;
 for tblIdx = 3:length(tableToPlot) %first 2 sources x hbr and hbo, then 1PFC x 2 (hbr and hbo)
@@ -111,10 +117,15 @@ for tblIdx = 3:length(tableToPlot) %first 2 sources x hbr and hbo, then 1PFC x 2
             saveNameId = 'DTvsST_PFC';
         end
     end
+    if tblIdx == 1 || tblIdx == 3 %vs base
+        conds = condsOrdered{1};
+    else %vs DT
+        conds = condsOrdered{2};
+    end
 %     tableByROI = tableToPlot{tblIdx};
     f = figure('units','normalized','outerposition',[0 0 1 1]);
     hold on;
-    conds = eval(['unique(DTdataAll{1}.statsTables.' tableToPlot{tblIdx} '.Contrast)']);
+%     conds = eval(['unique(DTdataAll{1}.statsTables.' tableToPlot{tblIdx} '.Contrast)']);
 %     sigMarkOffset = range(tableByROI.T) * 0.03;
     tIdx = 1;
 
